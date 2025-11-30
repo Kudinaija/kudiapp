@@ -1,8 +1,9 @@
 package com.kudiapp.kudiapp.services.serviceImpl;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
-import com.kudiapp.kudiapp.dto.request.ServiceProductRequest;
-import com.kudiapp.kudiapp.dto.request.ServiceProductResponse;
+import com.kudiapp.kudiapp.dto.request.SericeProduct.ServiceProductCreationRequest;
+import com.kudiapp.kudiapp.dto.response.SericeProduct.ServiceProductResponse;
+import com.kudiapp.kudiapp.dto.response.specifications.ServiceProductSpecifications;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
 import com.kudiapp.kudiapp.models.ServiceProduct;
 import com.kudiapp.kudiapp.repository.ServiceProductRepository;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
     private final ServiceProductRepository repository;
 
     @Override
-    public GenericResponse create(ServiceProductRequest request) {
+    public GenericResponse createServiceProduct(ServiceProductCreationRequest request) {
         log.info("Creating ServiceProduct: {}", request.getProductTitle());
         ServiceProduct product = new ServiceProduct();
         applyRequest(product, request);
@@ -37,7 +39,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
     }
 
     @Override
-    public GenericResponse update(Long id, ServiceProductRequest request) {
+    public GenericResponse updateServiceProduct(Long id, ServiceProductCreationRequest request) {
         log.info("Updating ServiceProduct id={}", id);
 
         ServiceProduct product = repository.findById(id)
@@ -56,7 +58,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
     }
 
     @Override
-    public GenericResponse getById(Long id) {
+    public GenericResponse getServiceProductById(Long id) {
         log.info("Fetching ServiceProduct id={}", id);
 
         ServiceProduct product = repository.findById(id)
@@ -71,7 +73,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
 
 
     @Override
-    public GenericResponse delete(Long id) {
+    public GenericResponse deleteServiceProduct(Long id) {
         log.info("Deleting ServiceProduct id={}", id);
         if (!repository.existsById(id)) {
             return new GenericResponse(false, "Product not found", HttpStatus.NOT_FOUND);
@@ -86,8 +88,15 @@ public class ServiceProductServiceImpl implements ServiceProductService {
     }
 
     @Override
-    public GenericResponse findAll(String category, String title, String urgency, Pageable pageable) {
-        Page<ServiceProduct> products = repository.findAll(pageable);
+    public GenericResponse findAllServiceProduct(String category, String title, String urgency, Pageable pageable) {
+        log.info("Fetching products with filters: category={}, title={}, urgency={}", category, title, urgency);
+
+        Specification<ServiceProduct> spec = Specification
+                .where(ServiceProductSpecifications.hasCategory(category))
+                .and(ServiceProductSpecifications.hasTitle(title))
+                .and(ServiceProductSpecifications.hasUrgency(urgency));
+
+        Page<ServiceProduct> products = repository.findAll(spec, pageable);
         Page<ServiceProductResponse> mapped = products.map(this::mapToResponse);
 
         return GenericResponse.builder()
@@ -98,7 +107,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
                 .build();
     }
 
-    private void applyRequest(ServiceProduct product, ServiceProductRequest request) {
+    private void applyRequest(ServiceProduct product, ServiceProductCreationRequest request) {
         product.setCategory(request.getCategory());
         product.setCategoryItems(request.getCategoryItems());
         product.setProductTitle(request.getProductTitle());

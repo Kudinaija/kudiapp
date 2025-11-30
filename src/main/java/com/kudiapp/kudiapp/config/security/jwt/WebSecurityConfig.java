@@ -77,7 +77,7 @@ public class WebSecurityConfig {
                         // Whitelisted public endpoints
                         .requestMatchers(WHITELIST).permitAll()
                         // Admin-only endpoints
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
