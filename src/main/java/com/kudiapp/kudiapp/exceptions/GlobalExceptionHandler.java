@@ -313,15 +313,4 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(InvalidOperationException.class)
-    public ResponseEntity<GenericResponse> handleInvalidOperationException(InvalidOperationException ex) {
-        log.error("Invalid operation: {}", ex.getMessage());
-        GenericResponse response = GenericResponse.builder()
-                .isSuccess(false)
-                .message(ex.getMessage())
-                .data(null)
-                .httpStatus(HttpStatus.BAD_REQUEST)
-                .build();
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
 }
