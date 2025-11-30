@@ -85,9 +85,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public GenericResponse uploadUserProfilePicture(MultipartFile file, String description, String mediaType) {
+    public GenericResponse uploadUserProfilePicture(Long userId, MultipartFile file, String description, String mediaType) {
 
-        User user = securityUtil.getCurrentLoggedInUser();
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found..."));
             try {
                 MediaUploadRequest mediaUploadRequest = new MediaUploadRequest();
                 mediaUploadRequest.setDescription(description);
