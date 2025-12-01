@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  IMAGE_NAME: kudi9ja/kudiapp:latest
+  IMAGE_NAME: kudi9ja/kudiapp:kudiappapi
 
 jobs:
   build-and-push:
