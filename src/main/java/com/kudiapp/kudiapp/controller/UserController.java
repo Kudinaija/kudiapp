@@ -34,14 +34,13 @@ public class UserController {
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 
-    @PostMapping("/profilePicture/{userId}")
+    @PostMapping("/profilePicture")
     public ResponseEntity<GenericResponse> uploadUserProfilePicture(
-            @PathVariable Long userId,
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String description,
             @RequestParam(defaultValue = "false") String mediaType) {
 
-        GenericResponse response = userService.uploadUserProfilePicture(userId, file, description, mediaType);
+        GenericResponse response = userService.uploadUserProfilePicture(file, description, mediaType);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 
