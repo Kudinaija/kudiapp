@@ -385,6 +385,9 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(savedRefreshToken.getToken())
                 .userUUID(userEntity.getUserUUID())
                 .roles(roles)
+                .phoneNumber(userEntity.getPhoneNumber())
+                .lastLoginAt(userEntity.getLastLoginAt())
+                .createdAt(userEntity.getCreatedAt())
                 .verified(userEntity.isVerified())
                 .build();
     }
