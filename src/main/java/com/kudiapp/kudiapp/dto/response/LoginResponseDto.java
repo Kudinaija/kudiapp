@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -25,5 +27,8 @@ public class LoginResponseDto {
     private String accessToken;
     private String refreshToken;
     private List<String> roles;
+    private String phoneNumber;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
 }
 

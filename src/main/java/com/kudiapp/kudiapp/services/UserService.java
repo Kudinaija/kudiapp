@@ -19,7 +19,7 @@ public interface UserService {
 
     GenericResponse deleteUser(Long id);
 
-    GenericResponse uploadUserProfilePicture(Long userId, MultipartFile file, String description, String mediaType);
+    GenericResponse uploadUserProfilePicture(MultipartFile file, String description, String mediaType);
 
     GenericResponse toggleTwoFactor();
 }
