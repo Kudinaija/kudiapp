@@ -1,4 +1,4 @@
-package com.kudiapp.kudiapp.enums;
+package com.kudiapp.kudiapp.enums.productService;
 
 import lombok.Getter;
 
