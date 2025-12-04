@@ -1,5 +1,5 @@
-# Use Eclipse Temurin JDK 21 as base image for build stage
-FROM eclipse-temurin:21-jdk-alpine AS build
+# Use Eclipse Temurin JDK 17 as base image for build stage
+FROM eclipse-temurin:17-jdk-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -22,7 +22,7 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # Create a new stage for the runtime
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre-alpine AS runtime
 
 WORKDIR /app
 
@@ -39,9 +39,9 @@ USER spring:spring
 # Expose the port your app runs on
 EXPOSE 8083
 
-# Health check
+# Health check - FIXED PORT TO MATCH SERVER_PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=5 \
-  CMD curl --fail http://localhost:2026/actuator/health || exit 1
+  CMD curl --fail http://localhost:8083/actuator/health || exit 1
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "/app/kudiapp.jar"]
