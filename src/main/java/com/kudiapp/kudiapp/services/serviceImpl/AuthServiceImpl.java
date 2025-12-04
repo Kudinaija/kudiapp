@@ -154,7 +154,7 @@ public class AuthServiceImpl implements AuthService {
         }
         User user = createUserTemplate(registerRequest);
         User savedUser = userRepository.save(user);
-        verificationCodeService.sendOtpCode(savedUser.getEmail());
+        verificationCodeService.sendOtpForRegistration(savedUser.getEmail());
 
         return GenericResponse.builder()
                 .isSuccess(true)
@@ -255,7 +255,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            verificationCodeService.sendOtpCode(email);
+            verificationCodeService.sendOtpForRegistration(email);
 
             return new GenericResponse("Verification code resent", HttpStatus.OK);
 
