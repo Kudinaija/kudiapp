@@ -21,6 +21,7 @@ public class EmailServiceImpl implements EmailService {
         this.mailSender = mailSender;
     }
 
+
     @Override
     @Transactional
     public void sendOtp(String to, String subject, String text) {
