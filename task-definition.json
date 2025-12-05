@@ -20,19 +20,19 @@
           "value": "8083"
         },
         {
-          "name": "APP_EMAIL_URL",
+          "name": "APP_EMAILURL",
           "value": "PLACEHOLDER"
         },
         {
-          "name": "APP_JWT_SECRET",
+          "name": "APP_JWTSECRET",
           "value": "PLACEHOLDER"
         },
         {
-          "name": "APP_JWT_EXPIRATION_MS",
+          "name": "APP_JWTEXPIRATIONMS",
           "value": "86400000"
         },
         {
-          "name": "APP_JWT_REFRESH_EXPIRATION_MS",
+          "name": "APP_JWTREFRESHEXPIRATIONMS",
           "value": "604800000"
         },
         {
