@@ -1,35 +1,152 @@
-{
-  "family": "kudiapp-task",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "runtimePlatform": {
-    "cpuArchitecture": "X86_64",
-    "operatingSystemFamily": "LINUX"
-  },
-  "containerDefinitions": [
-    {
-      "name": "kudiapp",
-      "image": "<IMAGE_NAME>",
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 8083,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {"name": "SERVER_PORT", "value": "8083"},
-        {"name": "APP_EMAIL_URL", "value": "SECRET_APP_EMAIL_URL"},
-        {"name": "APP_JWT_SECRET", "value": "SECRET_APP_JWT_SECRET"},
-        {"name": "APP_JWT_EXPIRATION_MS", "value": "86400000"},
-        {"name": "APP_JWT_REFRESH_EXPIRATION_MS", "value": "604800000"},
-        {"name": "MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE", "value": "health,info"},
-        {"name": "MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS", "value": "always"},
-        {"name": "MANAGEMENT_ENDPOINT_HEALTH_ACCESS", "value": "unrestricted"},
-        {"name": "MANAGEMENT_ENDPOINT_INFO_ACCESS", "value": "unrestricted"},
-        {"name": "SPRING_DATASOURCE_URL", "value": "SECRET_SPRING_DATASOURCE_URL"},
-        {"name": "SPRING_DATASOURCE_USERNAME", "value": "SECRET_SPRING_DATASOURCE_USERNAME"},
-        {"name": "SPRING_DATASOURCE_PASSWORD", "value": "SECRET_SPRING_DATASOURCE_PASSWORD"},
-        {"name": "SPRING_DATASOURCE_DRIVER_CL
+name: Deploy to AWS ECS (Docker Hub)
+
+on:
+  push:
+    branches:
+      - main  # Change to 'master' if that's your default branch
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+  ECS_TASK_DEFINITION: task-definition.json
+  CONTAINER_NAME: kudiapp
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+  deploy:
+    name: Build and Deploy to ECS via Docker Hub
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build, tag, and push image to Docker Hub
+        id: build-image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build Docker image
+          docker build -t $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG .
+          docker tag $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG $DOCKERHUB_USERNAME/kudiapp:latest
+          
+          # Push to Docker Hub
+          docker push $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG
+          docker push $DOCKERHUB_USERNAME/kudiapp:latest
+          
+          # Output image for next steps
+          echo "image=$DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fill in secrets in ECS task definition
+        id: task-def-secrets
+        env:
+          IMAGE_NAME: ${{ steps.build-image.outputs.image }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          APP_EMAIL_URL: ${{ secrets.APP_EMAIL_URL }}
+          APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          CLOUDINARY_CONFIG_NAME: ${{ secrets.CLOUDINARY_CONFIG_NAME }}
+          CLOUDINARY_CONFIG_API_KEY: ${{ secrets.CLOUDINARY_CONFIG_API_KEY }}
+          CLOUDINARY_CONFIG_SECRET: ${{ secrets.CLOUDINARY_CONFIG_SECRET }}
+          SPRING_MAIL_PASSWORD: ${{ secrets.SPRING_MAIL_PASSWORD }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # Use Python to properly inject secrets (more reliable than sed)
+          python3 << 'EOF'
+          import json
+          import os
+          
+          # Read the task definition template
+          with open('task-definition.json', 'r') as f:
+              task_def = json.load(f)
+          
+          # Replace image name
+          task_def['containerDefinitions'][0]['image'] = os.environ['IMAGE_NAME']
+          
+          # Replace AWS account ID in ARNs
+          task_def['executionRoleArn'] = task_def['executionRoleArn'].replace('<AWS_ACCOUNT_ID>', os.environ['AWS_ACCOUNT_ID'])
+          task_def['taskRoleArn'] = task_def['taskRoleArn'].replace('<AWS_ACCOUNT_ID>', os.environ['AWS_ACCOUNT_ID'])
+          
+          # Replace placeholders in environment variables
+          for env_var in task_def['containerDefinitions'][0]['environment']:
+              if env_var['value'] == 'PLACEHOLDER':
+                  env_name = env_var['name']
+                  if env_name in os.environ:
+                      env_var['value'] = os.environ[env_name]
+                      print(f"Set {env_name}")
+              elif env_var['value'] == 'DOCKERHUB_USERNAME/kudiapp:latest':
+                  env_var['value'] = os.environ['IMAGE_NAME']
+              elif '<IMAGE_NAME>' in env_var['value']:
+                  env_var['value'] = env_var['value'].replace('<IMAGE_NAME>', os.environ['IMAGE_NAME'])
+          
+          # Handle AWS credentials for S3 (they use different env var names)
+          for env_var in task_def['containerDefinitions'][0]['environment']:
+              if env_var['name'] == 'AWS_ACCESS_KEY_ID' and env_var['value'] == 'PLACEHOLDER':
+                  env_var['value'] = os.environ['S3_ACCESS_KEY_ID']
+                  print("Set AWS_ACCESS_KEY_ID for S3")
+              elif env_var['name'] == 'AWS_SECRET_ACCESS_KEY' and env_var['value'] == 'PLACEHOLDER':
+                  env_var['value'] = os.environ['S3_SECRET_ACCESS_KEY']
+                  print("Set AWS_SECRET_ACCESS_KEY for S3")
+          
+          # Write the final task definition
+          with open('task-definition-final.json', 'w') as f:
+              json.dump(task_def, f, indent=2)
+          
+          print("\n✅ Task definition created successfully")
+          print(f"Using Docker Hub image: {os.environ['IMAGE_NAME']}")
+          EOF
+
+      - name: Verify task definition
+        run: |
+          echo "=== Task Definition Contents ==="
+          cat task-definition-final.json
+          echo ""
+          echo "=== Validating JSON ==="
+          python3 -m json.tool task-definition-final.json > /dev/null && echo "✅ Valid JSON" || echo "❌ Invalid JSON"
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: task-definition-final.json
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Deployment Summary
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "📦 Docker Hub Image: ${{ steps.build-image.outputs.image }}"
+          echo "🔧 Service: ${{ env.ECS_SERVICE }}"
+          echo "🌐 Cluster: ${{ env.ECS_CLUSTER }}"
+          echo ""
+          echo "🐳 Your image is publicly available at:"
+          echo "   docker pull ${{ steps.build-image.outputs.image }}"
+          echo ""
+          echo "Access your app at:"
+          echo "Base URL: http://YOUR-ALB-DNS:8083"
+          echo "Swagger: http://YOUR-ALB-DNS:8083/swagger-ui/index.html"
