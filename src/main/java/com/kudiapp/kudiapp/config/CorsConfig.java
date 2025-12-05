@@ -22,6 +22,8 @@ public class CorsConfig {
 //        config.setAllowedOrigins(List.of(origins));
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:5173");
+        config.addAllowedOrigin("http://kudiapp-alb-1234567890.us-east-1.elb.amazonaws.com:8083");
+        config.addAllowedOrigin("http://kudiapp-alb-1234567890.us-east-1.elb.amazonaws.com:8083/swagger-ui/index.html");
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
