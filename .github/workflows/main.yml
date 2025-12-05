@@ -1,195 +1,53 @@
-name: Deploy to AWS ECS
+name: Build, Push, and Security Scan
 
 on:
   push:
     branches:
-      - main  # Change if your default branch is different
+      - main
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-  ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
-  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
-  ECS_TASK_DEFINITION: task-definition.json
-  CONTAINER_NAME: kudiapp
+  IMAGE_NAME: kudi9ja/kudiapp:kudiappapi
 
 jobs:
-  deploy:
-    name: Build and Deploy to ECS
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Verify Docker login
+        run: docker info | grep Username || echo "⚠️ Docker login failed"
+
+      - name: Build Docker Image
+        run: docker build -t $IMAGE_NAME .
+
+      - name: Push Docker Image to DockerHub
+        run: docker push $IMAGE_NAME
+
+      - name: Install Trivy for security scan
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.61.0/trivy_0.61.0_Linux-64bit.tar.gz
+          tar -xf trivy_0.61.0_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+
+      - name: Security Scan with Trivy
+        run: |
+          echo "===== Scanning Image =====" > trivy_report.txt
+          trivy image --exit-code 0 --severity CRITICAL,HIGH $IMAGE_NAME >> trivy_report.txt
+
+      - name: Upload Trivy Scan Report
+        uses: actions/upload-artifact@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build and push Docker image with unique tag
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "Building Docker image: $IMAGE_URI"
-          docker build -t "$IMAGE_URI" .
-          docker push "$IMAGE_URI"
-          # Write image URI safely to GitHub Actions output
-          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
-
-      - name: Fill in secrets in ECS task definition safely using jq
-        id: task-def-secrets
-        run: |
-          IMAGE_URI="${{ steps.build-image.outputs.image }}"
-          TASK_DEF="${{ env.ECS_TASK_DEFINITION }}"
-          OUTPUT_DEF="task-definition-final.json"
-
-          jq --arg image "$IMAGE_URI" \
-             --arg appEmail "${{ secrets.APP_EMAIL_URL }}" \
-             --arg jwtSecret "${{ secrets.APP_JWT_SECRET }}" \
-             --arg dsUrl "${{ secrets.SPRING_DATASOURCE_URL }}" \
-             --arg dsUser "${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
-             --arg dsPass "${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \
-             --arg mailPass "${{ secrets.SPRING_MAIL_PASSWORD }}" \
-             --arg s3Bucket "${{ secrets.AWS_S3_BUCKET_NAME }}" \
-             --arg accessKey "${{ secrets.AWS_ACCESS_KEY_ID }}" \
-             --arg secretKey "${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-             '
-             .containerDefinitions[0].image = $image
-             | .containerDefinitions[0].environment |= map(
-                 if .name=="APP_EMAIL_URL" then .value=$appEmail
-                 elif .name=="APP_JWT_SECRET" then .value=$jwtSecret
-                 elif .name=="SPRING_DATASOURCE_URL" then .value=$dsUrl
-                 elif .name=="SPRING_DATASOURCE_USERNAME" then .value=$dsUser
-                 elif .name=="SPRING_DATASOURCE_PASSWORD" then .value=$dsPass
-                 elif .name=="SPRING_MAIL_PASSWORD" then .value=$mailPass
-                 elif .name=="AWS_S3_BUCKET_NAME" then .value=$s3Bucket
-                 elif .name=="AWS_ACCESS_KEY_ID" then .value=$accessKey
-                 elif .name=="AWS_SECRET_ACCESS_KEY" then .value=$secretKey
-                 else . end
-             )
-             ' "$TASK_DEF" > "$OUTPUT_DEF"
-
-          echo "Task definition created with secrets injected safely using jq"
-
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: task-definition-final.json
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-
-      - name: Deployment Summary
-        run: |
-          echo "🚀 Deployment completed successfully!"
-          echo "📦 Image: ${{ steps.build-image.outputs.image }}"
-          echo "🔧 Service: ${{ env.ECS_SERVICE }}"
-          echo "🌐 Cluster: ${{ env.ECS_CLUSTER }}"
-
-#name: Deploy to AWS ECS
-#
-#on:
-#  push:
-#    branches:
-#      - main  # Change to 'master' if that's your default branch
-#
-#env:
-#  AWS_REGION: ${{ secrets.AWS_REGION }}
-#  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-#  ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
-#  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
-#  ECS_TASK_DEFINITION: task-definition.json
-#  CONTAINER_NAME: kudiapp
-#
-#jobs:
-#  deploy:
-#    name: Build and Deploy to ECS
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v3
-#
-#      - name: Set up JDK 17
-#        uses: actions/setup-java@v3
-#        with:
-#          java-version: '17'
-#          distribution: 'temurin'
-#          cache: maven
-#
-#      - name: Configure AWS credentials
-#        uses: aws-actions/configure-aws-credentials@v2
-#        with:
-#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#          aws-region: ${{ env.AWS_REGION }}
-#
-#      - name: Login to Amazon ECR
-#        id: login-ecr
-#        uses: aws-actions/amazon-ecr-login@v1
-#
-#      - name: Build, tag, and push image to Amazon ECR
-#        id: build-image
-#        env:
-#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#          IMAGE_TAG: ${{ github.sha }}
-#        run: |
-#          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-#          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-#          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-#
-#      - name: Fill in secrets in ECS task definition
-#        id: task-def-secrets
-#        run: |
-#          cat ${{ env.ECS_TASK_DEFINITION }} | \
-#          sed 's|<IMAGE_NAME>|${{ steps.build-image.outputs.image }}|g' | \
-#          sed 's|<AWS_ACCOUNT_ID>|${{ secrets.AWS_ACCOUNT_ID }}|g' | \
-#          sed 's|"APP_EMAIL_URL", "value": "PLACEHOLDER"|"APP_EMAIL_URL", "value": "${{ secrets.APP_EMAIL_URL }}"|g' | \
-#          sed 's|"APP_JWT_SECRET", "value": "PLACEHOLDER"|"APP_JWT_SECRET", "value": "${{ secrets.APP_JWT_SECRET }}"|g' | \
-#          sed 's|"SPRING_DATASOURCE_URL", "value": "PLACEHOLDER"|"SPRING_DATASOURCE_URL", "value": "${{ secrets.SPRING_DATASOURCE_URL }}"|g' | \
-#          sed 's|"SPRING_DATASOURCE_USERNAME", "value": "PLACEHOLDER"|"SPRING_DATASOURCE_USERNAME", "value": "${{ secrets.SPRING_DATASOURCE_USERNAME }}"|g' | \
-#          sed 's|"SPRING_DATASOURCE_PASSWORD", "value": "PLACEHOLDER"|"SPRING_DATASOURCE_PASSWORD", "value": "${{ secrets.SPRING_DATASOURCE_PASSWORD }}"|g' | \
-#          sed 's|"CLOUDINARY_CONFIG_NAME", "value": "PLACEHOLDER"|"CLOUDINARY_CONFIG_NAME", "value": "${{ secrets.CLOUDINARY_CONFIG_NAME }}"|g' | \
-#          sed 's|"CLOUDINARY_CONFIG_API_KEY", "value": "PLACEHOLDER"|"CLOUDINARY_CONFIG_API_KEY", "value": "${{ secrets.CLOUDINARY_CONFIG_API_KEY }}"|g' | \
-#          sed 's|"CLOUDINARY_CONFIG_SECRET", "value": "PLACEHOLDER"|"CLOUDINARY_CONFIG_SECRET", "value": "${{ secrets.CLOUDINARY_CONFIG_SECRET }}"|g' | \
-#          sed 's|"SPRING_MAIL_PASSWORD", "value": "PLACEHOLDER"|"SPRING_MAIL_PASSWORD", "value": "${{ secrets.SPRING_MAIL_PASSWORD }}"|g' | \
-#          sed 's|"AWS_S3_BUCKET_NAME", "value": "PLACEHOLDER"|"AWS_S3_BUCKET_NAME", "value": "${{ secrets.AWS_S3_BUCKET_NAME }}"|g' | \
-#          sed 's|"AWS_ACCESS_KEY_ID", "value": "PLACEHOLDER"|"AWS_ACCESS_KEY_ID", "value": "${{ secrets.AWS_ACCESS_KEY_ID }}"|g' | \
-#          sed 's|"AWS_SECRET_ACCESS_KEY", "value": "PLACEHOLDER"|"AWS_SECRET_ACCESS_KEY", "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"|g' \
-#          > task-definition-final.json
-#
-#          echo "Task definition created with secrets injected"
-#
-#      - name: Deploy Amazon ECS task definition
-#        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-#        with:
-#          task-definition: task-definition-final.json
-#          service: ${{ env.ECS_SERVICE }}
-#          cluster: ${{ env.ECS_CLUSTER }}
-#          wait-for-service-stability: true
-#
-#      - name: Deployment Summary
-#        run: |
-#          echo "🚀 Deployment completed successfully!"
-#          echo "📦 Image: ${{ steps.build-image.outputs.image }}"
-#          echo "🔧 Service: ${{ env.ECS_SERVICE }}"
-#          echo "🌐 Cluster: ${{ env.ECS_CLUSTER }}"
+          name: TrivyScanResults
+          path: trivy_report.txt
