@@ -1,13 +1,7 @@
 {
   "family": "kudiapp-task",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "runtimePlatform": {
-    "cpuArchitecture": "X86_64",
-    "operatingSystemFamily": "LINUX"
-  },
+  "networkMode": "bridge",
+  "requiresCompatibilities": ["EC2"],
   "containerDefinitions": [
     {
       "name": "kudiapp",
@@ -16,6 +10,7 @@
       "portMappings": [
         {
           "containerPort": 8083,
+          "hostPort": 0,
           "protocol": "tcp"
         }
       ],
@@ -175,5 +170,6 @@
     }
   ],
   "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskRole"
+  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskRole",
+  "placementConstraints": []
 }
