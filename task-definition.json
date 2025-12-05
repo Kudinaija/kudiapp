@@ -11,7 +11,7 @@
   "containerDefinitions": [
     {
       "name": "kudiapp",
-      "image": "DOCKERHUB_USERNAME/kudiapp:latest",
+      "image": "<IMAGE_NAME>",
       "essential": true,
       "portMappings": [
         {
@@ -21,17 +21,17 @@
       ],
       "environment": [
         {"name": "SERVER_PORT", "value": "8083"},
-        {"name": "APP_EMAIL_URL", "value": "PLACEHOLDER"},
-        {"name": "APP_JWT_SECRET", "value": "PLACEHOLDER"},
+        {"name": "APP_EMAIL_URL", "value": "SECRET_APP_EMAIL_URL"},
+        {"name": "APP_JWT_SECRET", "value": "SECRET_APP_JWT_SECRET"},
         {"name": "APP_JWT_EXPIRATION_MS", "value": "86400000"},
         {"name": "APP_JWT_REFRESH_EXPIRATION_MS", "value": "604800000"},
         {"name": "MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE", "value": "health,info"},
         {"name": "MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS", "value": "always"},
         {"name": "MANAGEMENT_ENDPOINT_HEALTH_ACCESS", "value": "unrestricted"},
         {"name": "MANAGEMENT_ENDPOINT_INFO_ACCESS", "value": "unrestricted"},
-        {"name": "SPRING_DATASOURCE_URL", "value": "PLACEHOLDER"},
-        {"name": "SPRING_DATASOURCE_USERNAME", "value": "PLACEHOLDER"},
-        {"name": "SPRING_DATASOURCE_PASSWORD", "value": "PLACEHOLDER"},
+        {"name": "SPRING_DATASOURCE_URL", "value": "SECRET_SPRING_DATASOURCE_URL"},
+        {"name": "SPRING_DATASOURCE_USERNAME", "value": "SECRET_SPRING_DATASOURCE_USERNAME"},
+        {"name": "SPRING_DATASOURCE_PASSWORD", "value": "SECRET_SPRING_DATASOURCE_PASSWORD"},
         {"name": "SPRING_DATASOURCE_DRIVER_CLASS_NAME", "value": "org.postgresql.Driver"},
         {"name": "SPRING_JPA_HIBERNATE_DDL_AUTO", "value": "update"},
         {"name": "SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT", "value": "20000"},
@@ -39,17 +39,20 @@
         {"name": "LOGGING_LEVEL_SPRING_SECURITY", "value": "INFO"},
         {"name": "LOGGING_LEVEL_SPRING_SECURITY_CONFIG", "value": "INFO"},
         {"name": "DEBUG_MODE", "value": "false"},
+        {"name": "CLOUDINARY_CONFIG_NAME", "value": "SECRET_CLOUDINARY_CONFIG_NAME"},
+        {"name": "CLOUDINARY_CONFIG_API_KEY", "value": "SECRET_CLOUDINARY_CONFIG_API_KEY"},
+        {"name": "CLOUDINARY_CONFIG_SECRET", "value": "SECRET_CLOUDINARY_CONFIG_SECRET"},
         {"name": "SPRING_MAIL_HOST", "value": "smtp.gmail.com"},
         {"name": "SPRING_MAIL_PORT", "value": "587"},
         {"name": "SPRING_MAIL_USERNAME", "value": "kudija99@gmail.com"},
-        {"name": "SPRING_MAIL_PASSWORD", "value": "PLACEHOLDER"},
+        {"name": "SPRING_MAIL_PASSWORD", "value": "SECRET_SPRING_MAIL_PASSWORD"},
         {"name": "SPRING_MAIL_SMTP_AUTH", "value": "true"},
         {"name": "SPRING_MAIL_STARTTLS_ENABLE", "value": "true"},
         {"name": "SPRING_MAIL_SSL_TRUST", "value": "smtp.gmail.com"},
-        {"name": "AWS_S3_BUCKET_NAME", "value": "PLACEHOLDER"},
+        {"name": "AWS_S3_BUCKET_NAME", "value": "SECRET_AWS_S3_BUCKET_NAME"},
         {"name": "AWS_S3_REGION", "value": "us-east-1"},
-        {"name": "AWS_ACCESS_KEY_ID", "value": "PLACEHOLDER"},
-        {"name": "AWS_SECRET_ACCESS_KEY", "value": "PLACEHOLDER"}
+        {"name": "AWS_ACCESS_KEY_ID", "value": "SECRET_AWS_ACCESS_KEY_ID"},
+        {"name": "AWS_SECRET_ACCESS_KEY", "value": "SECRET_AWS_SECRET_ACCESS_KEY"}
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
