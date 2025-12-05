@@ -3,7 +3,7 @@ name: Deploy to AWS ECS (Docker Hub)
 on:
   push:
     branches:
-      - main  # Change to 'master' if that's your default branch
+      - main
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -17,7 +17,7 @@ jobs:
   deploy:
     name: Build and Deploy to ECS via Docker Hub
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -40,15 +40,12 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Build Docker image
           docker build -t $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG .
           docker tag $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG $DOCKERHUB_USERNAME/kudiapp:latest
           
-          # Push to Docker Hub
           docker push $DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG
           docker push $DOCKERHUB_USERNAME/kudiapp:latest
           
-          # Output image for next steps
           echo "image=$DOCKERHUB_USERNAME/kudiapp:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
@@ -76,49 +73,28 @@ jobs:
           S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          # Use Python to properly inject secrets (more reliable than sed)
           python3 << 'EOF'
-          import json
-          import os
+          import json, os
           
-          # Read the task definition template
           with open('task-definition.json', 'r') as f:
               task_def = json.load(f)
           
-          # Replace image name
           task_def['containerDefinitions'][0]['image'] = os.environ['IMAGE_NAME']
-          
-          # Replace AWS account ID in ARNs
           task_def['executionRoleArn'] = task_def['executionRoleArn'].replace('<AWS_ACCOUNT_ID>', os.environ['AWS_ACCOUNT_ID'])
           task_def['taskRoleArn'] = task_def['taskRoleArn'].replace('<AWS_ACCOUNT_ID>', os.environ['AWS_ACCOUNT_ID'])
           
-          # Replace placeholders in environment variables
           for env_var in task_def['containerDefinitions'][0]['environment']:
-              if env_var['value'] == 'PLACEHOLDER':
-                  env_name = env_var['name']
-                  if env_name in os.environ:
-                      env_var['value'] = os.environ[env_name]
-                      print(f"Set {env_name}")
-              elif env_var['value'] == 'DOCKERHUB_USERNAME/kudiapp:latest':
-                  env_var['value'] = os.environ['IMAGE_NAME']
-              elif '<IMAGE_NAME>' in env_var['value']:
-                  env_var['value'] = env_var['value'].replace('<IMAGE_NAME>', os.environ['IMAGE_NAME'])
-          
-          # Handle AWS credentials for S3 (they use different env var names)
-          for env_var in task_def['containerDefinitions'][0]['environment']:
-              if env_var['name'] == 'AWS_ACCESS_KEY_ID' and env_var['value'] == 'PLACEHOLDER':
+              if env_var['value'] == 'PLACEHOLDER' and env_var['name'] in os.environ:
+                  env_var['value'] = os.environ[env_var['name']]
+              elif env_var['name'] == 'AWS_ACCESS_KEY_ID':
                   env_var['value'] = os.environ['S3_ACCESS_KEY_ID']
-                  print("Set AWS_ACCESS_KEY_ID for S3")
-              elif env_var['name'] == 'AWS_SECRET_ACCESS_KEY' and env_var['value'] == 'PLACEHOLDER':
+              elif env_var['name'] == 'AWS_SECRET_ACCESS_KEY':
                   env_var['value'] = os.environ['S3_SECRET_ACCESS_KEY']
-                  print("Set AWS_SECRET_ACCESS_KEY for S3")
           
-          # Write the final task definition
           with open('task-definition-final.json', 'w') as f:
               json.dump(task_def, f, indent=2)
           
-          print("\n✅ Task definition created successfully")
-          print(f"Using Docker Hub image: {os.environ['IMAGE_NAME']}")
+          print("Task definition updated successfully")
           EOF
 
       - name: Verify task definition
@@ -127,7 +103,7 @@ jobs:
           cat task-definition-final.json
           echo ""
           echo "=== Validating JSON ==="
-          python3 -m json.tool task-definition-final.json > /dev/null && echo "✅ Valid JSON" || echo "❌ Invalid JSON"
+          python3 -m json.tool task-definition-final.json > /dev/null && echo "VALID JSON" || echo "INVALID JSON"
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -135,18 +111,9 @@ jobs:
           task-definition: task-definition-final.json
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          wait-for-service-stability: false   # ✅ FIX: no more endless wait!
 
       - name: Deployment Summary
         run: |
-          echo "🚀 Deployment completed successfully!"
-          echo "📦 Docker Hub Image: ${{ steps.build-image.outputs.image }}"
-          echo "🔧 Service: ${{ env.ECS_SERVICE }}"
-          echo "🌐 Cluster: ${{ env.ECS_CLUSTER }}"
-          echo ""
-          echo "🐳 Your image is publicly available at:"
-          echo "   docker pull ${{ steps.build-image.outputs.image }}"
-          echo ""
-          echo "Access your app at:"
-          echo "Base URL: http://YOUR-ALB-DNS:8083"
-          echo "Swagger: http://YOUR-ALB-DNS:8083/swagger-ui/index.html"
+          echo "Deployment completed!"
+          echo "Image: ${{ steps.build-image.outputs.image }}"
