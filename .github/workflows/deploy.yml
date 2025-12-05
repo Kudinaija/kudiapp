@@ -32,46 +32,4 @@
         {"name": "SPRING_DATASOURCE_URL", "value": "SECRET_SPRING_DATASOURCE_URL"},
         {"name": "SPRING_DATASOURCE_USERNAME", "value": "SECRET_SPRING_DATASOURCE_USERNAME"},
         {"name": "SPRING_DATASOURCE_PASSWORD", "value": "SECRET_SPRING_DATASOURCE_PASSWORD"},
-        {"name": "SPRING_DATASOURCE_DRIVER_CLASS_NAME", "value": "org.postgresql.Driver"},
-        {"name": "SPRING_JPA_HIBERNATE_DDL_AUTO", "value": "update"},
-        {"name": "SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT", "value": "20000"},
-        {"name": "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE", "value": "5"},
-        {"name": "LOGGING_LEVEL_SPRING_SECURITY", "value": "INFO"},
-        {"name": "LOGGING_LEVEL_SPRING_SECURITY_CONFIG", "value": "INFO"},
-        {"name": "DEBUG_MODE", "value": "false"},
-        {"name": "CLOUDINARY_CONFIG_NAME", "value": "SECRET_CLOUDINARY_CONFIG_NAME"},
-        {"name": "CLOUDINARY_CONFIG_API_KEY", "value": "SECRET_CLOUDINARY_CONFIG_API_KEY"},
-        {"name": "CLOUDINARY_CONFIG_SECRET", "value": "SECRET_CLOUDINARY_CONFIG_SECRET"},
-        {"name": "SPRING_MAIL_HOST", "value": "smtp.gmail.com"},
-        {"name": "SPRING_MAIL_PORT", "value": "587"},
-        {"name": "SPRING_MAIL_USERNAME", "value": "kudija99@gmail.com"},
-        {"name": "SPRING_MAIL_PASSWORD", "value": "SECRET_SPRING_MAIL_PASSWORD"},
-        {"name": "SPRING_MAIL_SMTP_AUTH", "value": "true"},
-        {"name": "SPRING_MAIL_STARTTLS_ENABLE", "value": "true"},
-        {"name": "SPRING_MAIL_SSL_TRUST", "value": "smtp.gmail.com"},
-        {"name": "AWS_S3_BUCKET_NAME", "value": "SECRET_AWS_S3_BUCKET_NAME"},
-        {"name": "AWS_S3_REGION", "value": "us-east-1"},
-        {"name": "AWS_ACCESS_KEY_ID", "value": "SECRET_AWS_ACCESS_KEY_ID"},
-        {"name": "AWS_SECRET_ACCESS_KEY", "value": "SECRET_AWS_SECRET_ACCESS_KEY"}
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/kudiapp",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
-        }
-      },
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"],
-        "interval": 30,
-        "timeout": 10,
-        "retries": 3,
-        "startPeriod": 300
-      }
-    }
-  ],
-  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskRole"
-}
+        {"name": "SPRING_DATASOURCE_DRIVER_CL
