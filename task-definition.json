@@ -7,6 +7,7 @@
       "name": "kudiapp",
       "image": "<IMAGE_NAME>",
       "essential": true,
+      "memory": 1024,
       "portMappings": [
         {
           "containerPort": 8083,
