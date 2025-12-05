@@ -3,7 +3,7 @@ name: Deploy to AWS ECS
 on:
   push:
     branches:
-      - main  # Adjust if your default branch is 'master'
+      - main  # Change if your default branch is different
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -51,40 +51,40 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Fill in secrets in ECS task definition safely
+      - name: Fill in secrets in ECS task definition safely using jq
         id: task-def-secrets
         run: |
           IMAGE_URI="${{ steps.build-image.outputs.image }}"
+          TASK_DEF="${{ env.ECS_TASK_DEFINITION }}"
+          OUTPUT_DEF="task-definition-final.json"
 
-          # Escape special characters in secrets for sed
-          escape_sed() {
-            printf '%s' "$1" | sed 's/[&/\]/\\&/g'
-          }
+          jq --arg image "$IMAGE_URI" \
+             --arg appEmail "${{ secrets.APP_EMAIL_URL }}" \
+             --arg jwtSecret "${{ secrets.APP_JWT_SECRET }}" \
+             --arg dsUrl "${{ secrets.SPRING_DATASOURCE_URL }}" \
+             --arg dsUser "${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
+             --arg dsPass "${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \
+             --arg mailPass "${{ secrets.SPRING_MAIL_PASSWORD }}" \
+             --arg s3Bucket "${{ secrets.AWS_S3_BUCKET_NAME }}" \
+             --arg accessKey "${{ secrets.AWS_ACCESS_KEY_ID }}" \
+             --arg secretKey "${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+             '
+             .containerDefinitions[0].image = $image
+             | .containerDefinitions[0].environment |= map(
+                 if .name=="APP_EMAIL_URL" then .value=$appEmail
+                 elif .name=="APP_JWT_SECRET" then .value=$jwtSecret
+                 elif .name=="SPRING_DATASOURCE_URL" then .value=$dsUrl
+                 elif .name=="SPRING_DATASOURCE_USERNAME" then .value=$dsUser
+                 elif .name=="SPRING_DATASOURCE_PASSWORD" then .value=$dsPass
+                 elif .name=="SPRING_MAIL_PASSWORD" then .value=$mailPass
+                 elif .name=="AWS_S3_BUCKET_NAME" then .value=$s3Bucket
+                 elif .name=="AWS_ACCESS_KEY_ID" then .value=$accessKey
+                 elif .name=="AWS_SECRET_ACCESS_KEY" then .value=$secretKey
+                 else . end
+             )
+             ' "$TASK_DEF" > "$OUTPUT_DEF"
 
-          APP_EMAIL_URL_ESC=$(escape_sed "${{ secrets.APP_EMAIL_URL }}")
-          APP_JWT_SECRET_ESC=$(escape_sed "${{ secrets.APP_JWT_SECRET }}")
-          SPRING_DATASOURCE_URL_ESC=$(escape_sed "${{ secrets.SPRING_DATASOURCE_URL }}")
-          SPRING_DATASOURCE_USERNAME_ESC=$(escape_sed "${{ secrets.SPRING_DATASOURCE_USERNAME }}")
-          SPRING_DATASOURCE_PASSWORD_ESC=$(escape_sed "${{ secrets.SPRING_DATASOURCE_PASSWORD }}")
-          SPRING_MAIL_PASSWORD_ESC=$(escape_sed "${{ secrets.SPRING_MAIL_PASSWORD }}")
-          AWS_S3_BUCKET_NAME_ESC=$(escape_sed "${{ secrets.AWS_S3_BUCKET_NAME }}")
-          AWS_ACCESS_KEY_ID_ESC=$(escape_sed "${{ secrets.AWS_ACCESS_KEY_ID }}")
-          AWS_SECRET_ACCESS_KEY_ESC=$(escape_sed "${{ secrets.AWS_SECRET_ACCESS_KEY }}")
-
-          sed -e "s|<IMAGE_NAME>|$IMAGE_URI|g" \
-              -e "s|<AWS_ACCOUNT_ID>|${{ secrets.AWS_ACCOUNT_ID }}|g" \
-              -e "s|\"APP_EMAIL_URL\", \"value\": \"PLACEHOLDER\"|\"APP_EMAIL_URL\", \"value\": \"$APP_EMAIL_URL_ESC\"|g" \
-              -e "s|\"APP_JWT_SECRET\", \"value\": \"PLACEHOLDER\"|\"APP_JWT_SECRET\", \"value\": \"$APP_JWT_SECRET_ESC\"|g" \
-              -e "s|\"SPRING_DATASOURCE_URL\", \"value\": \"PLACEHOLDER\"|\"SPRING_DATASOURCE_URL\", \"value\": \"$SPRING_DATASOURCE_URL_ESC\"|g" \
-              -e "s|\"SPRING_DATASOURCE_USERNAME\", \"value\": \"PLACEHOLDER\"|\"SPRING_DATASOURCE_USERNAME\", \"value\": \"$SPRING_DATASOURCE_USERNAME_ESC\"|g" \
-              -e "s|\"SPRING_DATASOURCE_PASSWORD\", \"value\": \"PLACEHOLDER\"|\"SPRING_DATASOURCE_PASSWORD\", \"value\": \"$SPRING_DATASOURCE_PASSWORD_ESC\"|g" \
-              -e "s|\"SPRING_MAIL_PASSWORD\", \"value\": \"PLACEHOLDER\"|\"SPRING_MAIL_PASSWORD\", \"value\": \"$SPRING_MAIL_PASSWORD_ESC\"|g" \
-              -e "s|\"AWS_S3_BUCKET_NAME\", \"value\": \"PLACEHOLDER\"|\"AWS_S3_BUCKET_NAME\", \"value\": \"$AWS_S3_BUCKET_NAME_ESC\"|g" \
-              -e "s|\"AWS_ACCESS_KEY_ID\", \"value\": \"PLACEHOLDER\"|\"AWS_ACCESS_KEY_ID\", \"value\": \"$AWS_ACCESS_KEY_ID_ESC\"|g" \
-              -e "s|\"AWS_SECRET_ACCESS_KEY\", \"value\": \"PLACEHOLDER\"|\"AWS_SECRET_ACCESS_KEY\", \"value\": \"$AWS_SECRET_ACCESS_KEY_ESC\"|g" \
-              ${{ env.ECS_TASK_DEFINITION }} > task-definition-final.json
-
-          echo "Task definition created with secrets injected"
+          echo "Task definition created with secrets injected safely using jq"
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
