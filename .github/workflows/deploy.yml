@@ -111,7 +111,7 @@ jobs:
           task-definition: task-definition-final.json
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: false   # ✅ FIX: no more endless wait!
+#          wait-for-service-stability: false   # ✅ FIX: no more endless wait!wait
 
       - name: Deployment Summary
         run: |
