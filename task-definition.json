@@ -11,7 +11,7 @@
   "containerDefinitions": [
     {
       "name": "kudiapp",
-      "image": "<IMAGE_NAME>",
+      "image": "350065860390.dkr.ecr.us-east-1.amazonaws.com/kudiapp",
       "essential": true,
       "portMappings": [
         {
