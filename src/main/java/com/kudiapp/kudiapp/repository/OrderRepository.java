@@ -1,5 +1,8 @@
 package com.kudiapp.kudiapp.repository;
 
+import com.kudiapp.kudiapp.enums.productService.OrderAction;
+import com.kudiapp.kudiapp.enums.productService.OrderStatus;
+import com.kudiapp.kudiapp.models.productService.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
