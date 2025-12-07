@@ -8,7 +8,7 @@ import com.kudiapp.kudiapp.exceptions.InvalidOperationException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
 import com.kudiapp.kudiapp.models.productService.CurrencyExchangeRate;
 import com.kudiapp.kudiapp.repository.CurrencyExchangeRateRepository;
-import com.kudiapp.kudiapp.services.CurrencyExchangeRateService;
+import com.kudiapp.kudiapp.services.productService.CurrencyExchangeRateService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
