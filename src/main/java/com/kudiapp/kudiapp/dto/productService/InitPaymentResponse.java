@@ -1,4 +1,4 @@
-package com.kudiapp.kudiapp.dto.request.payment;
+package com.kudiapp.kudiapp.dto.productService;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
