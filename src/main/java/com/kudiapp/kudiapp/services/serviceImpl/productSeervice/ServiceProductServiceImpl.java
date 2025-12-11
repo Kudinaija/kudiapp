@@ -1,6 +1,5 @@
 package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 
-
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.ServiceProductCreationRequest;
 import com.kudiapp.kudiapp.dto.productService.ServiceProductResponse;
@@ -23,9 +22,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Complete implementation of ServiceProductService with all required methods
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -40,9 +43,12 @@ public class ServiceProductServiceImpl implements ServiceProductService {
         log.info("Creating service product with title: {}", request.getProductTitle());
 
         ServiceProduct product = buildServiceProductFromRequest(new ServiceProduct(), request);
+        product.setCreatedAt(LocalDateTime.now());
+        product.setUpdatedAt(LocalDateTime.now());
+
         ServiceProduct savedProduct = serviceProductRepository.save(product);
 
-        log.info("Successfully created service product with ID: {} in status: {}", 
+        log.info("Successfully created service product with ID: {} in status: {}",
                 savedProduct.getId(), savedProduct.getStatus());
 
         return GenericResponse.builder()
@@ -59,6 +65,8 @@ public class ServiceProductServiceImpl implements ServiceProductService {
 
         ServiceProduct product = findServiceProductById(id);
         buildServiceProductFromRequest(product, request);
+        product.setUpdatedAt(LocalDateTime.now());
+
         ServiceProduct updatedProduct = serviceProductRepository.save(product);
 
         log.info("Successfully updated service product with ID: {}", id);
@@ -77,6 +85,9 @@ public class ServiceProductServiceImpl implements ServiceProductService {
         log.info("Retrieving service product with ID: {}", id);
 
         ServiceProduct product = findServiceProductById(id);
+
+        log.info("Successfully retrieved service product with ID: {}, Title: {}",
+                id, product.getProductTitle());
 
         return GenericResponse.builder()
                 .isSuccess(true)
@@ -110,25 +121,40 @@ public class ServiceProductServiceImpl implements ServiceProductService {
             UrgencyType urgency,
             ServiceProductStatus status,
             Pageable pageable) {
-        
-        log.info("Fetching service products with filters - category: {}, title: {}, urgency: {}, status: {}", 
+
+        log.info("Fetching service products with filters - category: {}, title: {}, urgency: {}, status: {}",
                 category, title, urgency, status);
 
-        Specification<ServiceProduct> spec = Specification
-                .where(ServiceProductSpecification.hasCategory(category))
-                .and(ServiceProductSpecification.hasProductTitle(title))
-                .and(ServiceProductSpecification.hasUrgencyType(urgency))
-                .and(ServiceProductSpecification.hasStatus(status));
+        try {
+            Specification<ServiceProduct> spec = Specification
+                    .where(ServiceProductSpecification.hasCategory(category))
+                    .and(ServiceProductSpecification.hasProductTitle(title))
+                    .and(ServiceProductSpecification.hasUrgencyType(urgency))
+                    .and(ServiceProductSpecification.hasStatus(status));
 
-        Page<ServiceProduct> products = serviceProductRepository.findAll(spec, pageable);
-        Page<ServiceProductResponse> responses = products.map(this::mapToResponse);
+            Page<ServiceProduct> products = serviceProductRepository.findAll(spec, pageable);
+            Page<ServiceProductResponse> responses = products.map(this::mapToResponse);
 
-        return GenericResponse.builder()
-                .isSuccess(true)
-                .message("Service products retrieved successfully")
-                .httpStatus(HttpStatus.OK)
-                .data(responses)
-                .build();
+            log.info("Successfully retrieved {} service products (page {} of {})",
+                    products.getNumberOfElements(),
+                    products.getNumber() + 1,
+                    products.getTotalPages());
+
+            return GenericResponse.builder()
+                    .isSuccess(true)
+                    .message("Service products retrieved successfully")
+                    .httpStatus(HttpStatus.OK)
+                    .data(responses)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Error fetching service products: {}", e.getMessage(), e);
+            return GenericResponse.builder()
+                    .isSuccess(false)
+                    .message("Failed to retrieve service products: " + e.getMessage())
+                    .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
     }
 
     @Override
@@ -138,25 +164,37 @@ public class ServiceProductServiceImpl implements ServiceProductService {
             PRODUCT_TITLE title,
             UrgencyType urgency,
             Pageable pageable) {
-        
-        log.info("Fetching public service products with filters - category: {}, title: {}, urgency: {}", 
+
+        log.info("Fetching public service products with filters - category: {}, title: {}, urgency: {}",
                 category, title, urgency);
 
-        Specification<ServiceProduct> spec = Specification
-                .where(ServiceProductSpecification.hasCategory(category))
-                .and(ServiceProductSpecification.hasProductTitle(title))
-                .and(ServiceProductSpecification.hasUrgencyType(urgency))
-                .and(ServiceProductSpecification.hasStatus(ServiceProductStatus.ACTIVE));
+        try {
+            Specification<ServiceProduct> spec = Specification
+                    .where(ServiceProductSpecification.hasCategory(category))
+                    .and(ServiceProductSpecification.hasProductTitle(title))
+                    .and(ServiceProductSpecification.hasUrgencyType(urgency))
+                    .and(ServiceProductSpecification.hasStatus(ServiceProductStatus.ACTIVE));
 
-        Page<ServiceProduct> products = serviceProductRepository.findAll(spec, pageable);
-        Page<ServiceProductResponse> responses = products.map(this::mapToResponsePublic);
+            Page<ServiceProduct> products = serviceProductRepository.findAll(spec, pageable);
+            Page<ServiceProductResponse> responses = products.map(this::mapToResponsePublic);
 
-        return GenericResponse.builder()
-                .isSuccess(true)
-                .message("Public service products retrieved successfully")
-                .httpStatus(HttpStatus.OK)
-                .data(responses)
-                .build();
+            log.info("Successfully retrieved {} public service products", products.getNumberOfElements());
+
+            return GenericResponse.builder()
+                    .isSuccess(true)
+                    .message("Public service products retrieved successfully")
+                    .httpStatus(HttpStatus.OK)
+                    .data(responses)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Error fetching public service products: {}", e.getMessage(), e);
+            return GenericResponse.builder()
+                    .isSuccess(false)
+                    .message("Failed to retrieve public service products: " + e.getMessage())
+                    .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
     }
 
     @Override
@@ -164,10 +202,12 @@ public class ServiceProductServiceImpl implements ServiceProductService {
         log.info("Activating service product with ID: {}", id);
 
         ServiceProduct product = findServiceProductById(id);
-        
+
+        // Validate product can be activated
         productValidationService.validateProductForActivation(product);
-        
+
         product.setStatus(ServiceProductStatus.ACTIVE);
+        product.setUpdatedAt(LocalDateTime.now());
         serviceProductRepository.save(product);
 
         log.info("Successfully activated service product with ID: {}", id);
@@ -186,6 +226,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
 
         ServiceProduct product = findServiceProductById(id);
         product.setStatus(ServiceProductStatus.INACTIVE);
+        product.setUpdatedAt(LocalDateTime.now());
         serviceProductRepository.save(product);
 
         log.info("Successfully deactivated service product with ID: {}", id);
@@ -204,6 +245,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
 
         ServiceProduct product = findServiceProductById(id);
         product.setStatus(ServiceProductStatus.ARCHIVED);
+        product.setUpdatedAt(LocalDateTime.now());
         serviceProductRepository.save(product);
 
         log.info("Successfully archived service product with ID: {}", id);
@@ -222,7 +264,7 @@ public class ServiceProductServiceImpl implements ServiceProductService {
         log.info("Checking activation eligibility for service product ID: {}", id);
 
         ServiceProduct product = findServiceProductById(id);
-        
+
         boolean canActivate = productValidationService.canProductBeActivated(product);
         String blockerMessage = productValidationService.getActivationBlockerMessage(product);
 
@@ -234,6 +276,9 @@ public class ServiceProductServiceImpl implements ServiceProductService {
         eligibilityInfo.put("hasValidPricing", productValidationService.hasValidPricing(product));
         eligibilityInfo.put("blockerMessage", blockerMessage);
 
+        log.info("Activation eligibility check completed for product ID: {} - Can activate: {}",
+                id, canActivate);
+
         return GenericResponse.builder()
                 .isSuccess(true)
                 .message(canActivate ? "Product is eligible for activation" : "Product cannot be activated")
@@ -242,35 +287,58 @@ public class ServiceProductServiceImpl implements ServiceProductService {
                 .build();
     }
 
+    // PRIVATE HELPER METHODS
+
+    /**
+     * Find service product by ID or throw exception
+     */
     private ServiceProduct findServiceProductById(Long id) {
         return serviceProductRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Service product not found with ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Service product not found with ID: {}", id);
+                    return new ResourceNotFoundException(
+                            "Service product not found with ID: " + id);
+                });
     }
 
+    /**
+     * Build service product entity from request DTO
+     */
     private ServiceProduct buildServiceProductFromRequest(
-            ServiceProduct product, 
+            ServiceProduct product,
             ServiceProductCreationRequest request) {
-        
+
         product.setCategory(request.getCategory());
         product.setCategoryItems(request.getCategoryItems());
         product.setProductTitle(request.getProductTitle());
         product.setProductDescription(request.getProductDescription());
         product.setUrgencyType(request.getUrgencyType());
         product.setMetadata(request.getMetadata());
-        
+
+        // Set status - defaults to DRAFT if not provided
         if (request.getStatus() != null) {
             product.setStatus(request.getStatus());
         } else if (product.getStatus() == null) {
             product.setStatus(ServiceProductStatus.DRAFT);
         }
-        
+
         return product;
     }
 
+    /**
+     * Map service product entity to response DTO (includes activation info)
+     */
     private ServiceProductResponse mapToResponse(ServiceProduct product) {
-        boolean canActivate = productValidationService.canProductBeActivated(product);
-        String blockerMessage = productValidationService.getActivationBlockerMessage(product);
+        boolean canActivate = false;
+        String blockerMessage = null;
+
+        try {
+            canActivate = productValidationService.canProductBeActivated(product);
+            blockerMessage = productValidationService.getActivationBlockerMessage(product);
+        } catch (Exception e) {
+            log.warn("Error checking activation eligibility for product {}: {}",
+                    product.getId(), e.getMessage());
+        }
 
         return ServiceProductResponse.builder()
                 .id(product.getId())
@@ -288,6 +356,9 @@ public class ServiceProductServiceImpl implements ServiceProductService {
                 .build();
     }
 
+    /**
+     * Map service product entity to public response DTO (no activation info)
+     */
     private ServiceProductResponse mapToResponsePublic(ServiceProduct product) {
         return ServiceProductResponse.builder()
                 .id(product.getId())

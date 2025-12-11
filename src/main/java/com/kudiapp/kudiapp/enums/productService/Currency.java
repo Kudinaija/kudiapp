@@ -15,5 +15,4 @@ public enum Currency {
         this.displayName = displayName;
         this.symbol = symbol;
     }
-
 }

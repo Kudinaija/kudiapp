@@ -3,7 +3,7 @@ package com.kudiapp.kudiapp.controller;
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.CurrencyExchangeRateRequest;
 import com.kudiapp.kudiapp.enums.productService.Currency;
-import com.kudiapp.kudiapp.services.CurrencyExchangeRateService;
+import com.kudiapp.kudiapp.services.productService.CurrencyExchangeRateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

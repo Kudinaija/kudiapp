@@ -2,7 +2,7 @@ package com.kudiapp.kudiapp.controller;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.ServiceProductPriceRequest;
-import com.kudiapp.kudiapp.services.ServiceProductPriceService;
+import com.kudiapp.kudiapp.services.productService.ServiceProductPriceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
