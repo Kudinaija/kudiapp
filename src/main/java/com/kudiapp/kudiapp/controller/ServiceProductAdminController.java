@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,27 +21,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST Controller for managing service products (Admin operations)
+ */
 @RestController
 @RequestMapping("/api/v1/admin/service-products")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Service Product Management", description = "Admin endpoints for managing service products")
 public class ServiceProductAdminController {
 
     private final ServiceProductService serviceProductService;
 
-
     @PostMapping
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Create a new service product",
             description = "Creates a new service product in DRAFT status. Product can only be activated after adding plans and pricing.")
     @ApiResponses(value = {
@@ -51,11 +48,13 @@ public class ServiceProductAdminController {
     })
     public ResponseEntity<GenericResponse> createServiceProduct(
             @Valid @RequestBody ServiceProductCreationRequest request) {
+        log.info("Received request to create service product: {}", request.getProductTitle());
         GenericResponse response = serviceProductService.createServiceProduct(request);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Update a service product", description = "Updates an existing service product")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Service product updated successfully"),
@@ -64,6 +63,7 @@ public class ServiceProductAdminController {
     public ResponseEntity<GenericResponse> updateServiceProduct(
             @Parameter(description = "Service product ID") @PathVariable Long id,
             @Valid @RequestBody ServiceProductCreationRequest request) {
+        log.info("Received request to update service product ID: {}", id);
         GenericResponse response = serviceProductService.updateServiceProduct(id, request);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
@@ -77,6 +77,7 @@ public class ServiceProductAdminController {
     })
     public ResponseEntity<GenericResponse> getServiceProductById(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to get service product by ID: {}", id);
         GenericResponse response = serviceProductService.getServiceProductById(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
@@ -93,6 +94,10 @@ public class ServiceProductAdminController {
             @Parameter(description = "Filter by urgency type") @RequestParam(required = false) UrgencyType urgency,
             @Parameter(description = "Filter by status") @RequestParam(required = false) ServiceProductStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        log.info("Received request to get all service products with filters - category: {}, title: {}, urgency: {}, status: {}, page: {}, size: {}",
+                category, title, urgency, status, pageable.getPageNumber(), pageable.getPageSize());
+
         GenericResponse response = serviceProductService.findAllServiceProducts(
                 category, title, urgency, status, pageable);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
@@ -109,12 +114,15 @@ public class ServiceProductAdminController {
             @Parameter(description = "Filter by product title") @RequestParam(required = false) PRODUCT_TITLE title,
             @Parameter(description = "Filter by urgency type") @RequestParam(required = false) UrgencyType urgency,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        log.info("Received request to get public service products");
         GenericResponse response = serviceProductService.findPublicServiceProducts(
                 category, title, urgency, pageable);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Activate service product",
             description = "Activates a service product. Validates that product has at least one active plan with valid pricing.")
     @ApiResponses(value = {
@@ -124,24 +132,29 @@ public class ServiceProductAdminController {
     })
     public ResponseEntity<GenericResponse> activateServiceProduct(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to activate service product ID: {}", id);
         GenericResponse response = serviceProductService.activateServiceProduct(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Deactivate service product",
             description = "Deactivates an active service product. Users will no longer see it.")
     public ResponseEntity<GenericResponse> deactivateServiceProduct(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to deactivate service product ID: {}", id);
         GenericResponse response = serviceProductService.deactivateServiceProduct(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @PatchMapping("/{id}/archive")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Archive service product",
             description = "Archives a service product. Archived products are no longer available.")
     public ResponseEntity<GenericResponse> archiveServiceProduct(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to archive service product ID: {}", id);
         GenericResponse response = serviceProductService.archiveServiceProduct(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
@@ -154,11 +167,13 @@ public class ServiceProductAdminController {
     })
     public ResponseEntity<GenericResponse> checkActivationEligibility(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to check activation eligibility for service product ID: {}", id);
         GenericResponse response = serviceProductService.checkActivationEligibility(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Delete service product", description = "Permanently deletes a service product")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Service product deleted successfully"),
@@ -166,6 +181,7 @@ public class ServiceProductAdminController {
     })
     public ResponseEntity<GenericResponse> deleteServiceProduct(
             @Parameter(description = "Service product ID") @PathVariable Long id) {
+        log.info("Received request to delete service product ID: {}", id);
         GenericResponse response = serviceProductService.deleteServiceProduct(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
