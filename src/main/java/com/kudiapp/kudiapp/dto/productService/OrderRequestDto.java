@@ -17,7 +17,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceRequestDto {
+public class OrderRequestDto {
 
     @NotNull(message = "Service product ID is required")
     private Long serviceProductId;

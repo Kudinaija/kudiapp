@@ -1,7 +1,7 @@
 package com.kudiapp.kudiapp.services.productService;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
-import com.kudiapp.kudiapp.dto.productService.ServiceRequestDto;
+import com.kudiapp.kudiapp.dto.productService.OrderRequestDto;
 import com.kudiapp.kudiapp.enums.productService.OrderAction;
 import com.kudiapp.kudiapp.enums.productService.OrderStatus;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +17,7 @@ public interface OrderService {
      * @param request The service request DTO
      * @return GenericResponse containing the created order
      */
-    GenericResponse createOrder(ServiceRequestDto request);
+    GenericResponse createOrder(OrderRequestDto request);
 
     /**
      * Get order by ID
