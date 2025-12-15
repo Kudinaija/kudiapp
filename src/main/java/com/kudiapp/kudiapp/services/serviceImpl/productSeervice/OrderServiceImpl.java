@@ -2,7 +2,7 @@ package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.OrderResponseDto;
-import com.kudiapp.kudiapp.dto.productService.ServiceRequestDto;
+import com.kudiapp.kudiapp.dto.productService.OrderRequestDto;
 import com.kudiapp.kudiapp.enums.productService.*;
 import com.kudiapp.kudiapp.exceptions.InvalidOperationException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
@@ -51,7 +51,7 @@ public class OrderServiceImpl implements OrderService {
     private static final BigDecimal SERVICE_FEE_PERCENTAGE = new BigDecimal("0.02");
 
     @Override
-    public GenericResponse createOrder(ServiceRequestDto request) {
+    public GenericResponse createOrder(OrderRequestDto request) {
         log.info("Creating order for service product ID: {} and plan ID: {}", 
                 request.getServiceProductId(), request.getServicePlanId());
 
@@ -473,7 +473,7 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal conversionRate,
             BigDecimal amountInNGN,
             BigDecimal serviceFee,
-            ServiceRequestDto request) {
+            OrderRequestDto request) {
 
         return Order.builder()
                 .userId(user.getId())
