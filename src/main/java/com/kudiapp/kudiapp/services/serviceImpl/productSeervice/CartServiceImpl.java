@@ -48,7 +48,7 @@ public class CartServiceImpl implements CartService {
         log.info("Getting or creating cart for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
                 .orElseGet(() -> {
                     log.info("Creating new cart for user: {}", currentUser.getId());
@@ -68,7 +68,7 @@ public class CartServiceImpl implements CartService {
         log.info("Retrieving active cart for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No active cart found. Please add items to create a cart."));
@@ -87,12 +87,8 @@ public class CartServiceImpl implements CartService {
         log.info("Adding order {} to cart", orderId);
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
-        // Get or create cart
-        Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
-                .orElseGet(() -> createNewCart(currentUser));
 
-        // Get order
+        // Get order first
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Order not found with ID: " + orderId));
@@ -109,21 +105,36 @@ public class CartServiceImpl implements CartService {
                     "Only pending orders can be added to cart");
         }
 
-        if (!order.getIsInCart()) {
-            // Add order to cart
-            cart.addOrder(order);
-            order.setIsInCart(true);
-            cartRepository.save(cart);
-            orderRepository.save(order);
-            
-            log.info("Successfully added order {} to cart {}", orderId, cart.getId());
+        // Check if order is already in a cart
+        if (order.getCart() != null && order.getCart().getStatus() == CartStatus.ACTIVE) {
+            log.info("Order {} is already in cart {}", orderId, order.getCart().getId());
+            return GenericResponse.builder()
+                    .isSuccess(true)
+                    .message("Order is already in cart")
+                    .httpStatus(HttpStatus.OK)
+                    .data(mapToResponseDto(order.getCart()))
+                    .build();
         }
+
+        // Get or create cart
+        Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
+                .orElseGet(() -> createNewCart(currentUser));
+
+        // Add order to cart (this sets the bidirectional relationship)
+        cart.addOrder(order);
+        order.setIsInCart(true);
+
+        // Save cart (cascade will save order relationship)
+        Cart savedCart = cartRepository.save(cart);
+
+        log.info("Successfully added order {} to cart {}. Cart now has {} items",
+                orderId, savedCart.getId(), savedCart.getItemCount());
 
         return GenericResponse.builder()
                 .isSuccess(true)
                 .message("Order added to cart successfully")
                 .httpStatus(HttpStatus.OK)
-                .data(mapToResponseDto(cart))
+                .data(mapToResponseDto(savedCart))
                 .build();
     }
 
@@ -133,10 +144,8 @@ public class CartServiceImpl implements CartService {
         log.info("Removing order {} from cart", orderId);
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
-        Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("No active cart found"));
 
+        // Get order
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Order not found with ID: " + orderId));
@@ -147,19 +156,40 @@ public class CartServiceImpl implements CartService {
                     "You are not authorized to remove this order");
         }
 
+        // Check if order has a cart
+        if (order.getCart() == null) {
+            throw new InvalidOperationException(
+                    "Order is not in any cart");
+        }
+
+        Cart cart = order.getCart();
+
+        // Validate cart belongs to user
+        if (!cart.getUserId().equals(currentUser.getId())) {
+            throw new InvalidOperationException(
+                    "You are not authorized to modify this cart");
+        }
+
+        // Validate cart can be modified
+        if (!cart.canBeModified()) {
+            throw new InvalidOperationException(
+                    "Cart cannot be modified in its current status: " + cart.getStatus());
+        }
+
         // Remove order from cart
         cart.removeOrder(order);
         order.setIsInCart(false);
-        cartRepository.save(cart);
-        orderRepository.save(order);
 
-        log.info("Successfully removed order {} from cart", orderId);
+        Cart savedCart = cartRepository.save(cart);
+
+        log.info("Successfully removed order {} from cart {}. Cart now has {} items",
+                orderId, savedCart.getId(), savedCart.getItemCount());
 
         return GenericResponse.builder()
                 .isSuccess(true)
                 .message("Order removed from cart successfully")
                 .httpStatus(HttpStatus.OK)
-                .data(mapToResponseDto(cart))
+                .data(mapToResponseDto(savedCart))
                 .build();
     }
 
@@ -168,20 +198,34 @@ public class CartServiceImpl implements CartService {
         log.info("Clearing cart for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No active cart found"));
+
+        // Validate cart can be modified
+        if (!cart.canBeModified()) {
+            try {
+                throw new InvalidOperationException(
+                        "Cart cannot be modified in its current status: " + cart.getStatus());
+            } catch (InvalidOperationException e) {
+                log.info(e.getMessage());
+                throw new RuntimeException(e);
+            }
+        }
+
+        int itemCount = cart.getItemCount();
 
         // Clear all orders
         cart.getOrders().forEach(order -> order.setIsInCart(false));
         cart.clearOrders();
         cartRepository.save(cart);
 
-        log.info("Successfully cleared cart for user: {}", currentUser.getId());
+        log.info("Successfully cleared {} items from cart for user: {}",
+                itemCount, currentUser.getId());
 
         return GenericResponse.builder()
                 .isSuccess(true)
-                .message("Cart cleared successfully")
+                .message(String.format("Cart cleared successfully. Removed %d items.", itemCount))
                 .httpStatus(HttpStatus.OK)
                 .build();
     }
@@ -192,7 +236,7 @@ public class CartServiceImpl implements CartService {
         log.info("Retrieving cart summary with live exchange rates");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No active cart found"));
 
@@ -201,6 +245,9 @@ public class CartServiceImpl implements CartService {
 
         CartResponseDto responseDto = mapToResponseDto(cart);
         responseDto.setLiveExchangeRates(liveRates);
+
+        log.info("Cart summary retrieved: {} items, total: {} {}",
+                cart.getItemCount(), cart.getTotalAmount(), cart.getCurrency());
 
         return GenericResponse.builder()
                 .isSuccess(true)
@@ -216,13 +263,19 @@ public class CartServiceImpl implements CartService {
         log.info("Processing checkout for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No active cart found"));
 
         // Validate cart is not empty
         if (cart.isEmpty()) {
             throw new InvalidOperationException("Cannot checkout with empty cart");
+        }
+
+        // Validate cart can be checked out
+        if (!cart.canBeModified()) {
+            throw new InvalidOperationException(
+                    "Cart has already been checked out or is in invalid status: " + cart.getStatus());
         }
 
         // Validate all orders are in pending status
@@ -236,20 +289,22 @@ public class CartServiceImpl implements CartService {
 
         // Generate payment reference
         String paymentReference = ReferenceGeneratorUtil.generatePaymentReference();
-        
+
         // Update cart status
         cart.checkout(paymentReference);
-        cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart);
 
-        log.info("Successfully prepared cart for checkout. Payment reference: {}", 
-                paymentReference);
+        log.info("Successfully prepared cart {} for checkout. Payment reference: {}, Total: {} {}",
+                savedCart.getId(), paymentReference, savedCart.getTotalAmount(), savedCart.getCurrency());
 
         Map<String, Object> checkoutData = new HashMap<>();
-        checkoutData.put("cartReference", cart.getCartReference());
+        checkoutData.put("cartReference", savedCart.getCartReference());
         checkoutData.put("paymentReference", paymentReference);
-        checkoutData.put("totalAmount", cart.getTotalAmount());
-        checkoutData.put("currency", cart.getCurrency());
-        checkoutData.put("itemCount", cart.getItemCount());
+        checkoutData.put("totalAmount", savedCart.getTotalAmount());
+        checkoutData.put("currency", savedCart.getCurrency());
+        checkoutData.put("itemCount", savedCart.getItemCount());
+        checkoutData.put("subtotal", savedCart.getSubtotal());
+        checkoutData.put("serviceFee", savedCart.getTotalServiceFee());
 
         return GenericResponse.builder()
                 .isSuccess(true)
@@ -265,12 +320,14 @@ public class CartServiceImpl implements CartService {
         log.info("Retrieving all carts for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        
+
         List<Cart> carts = cartRepository.findByUserId(currentUser.getId());
-        
+
         List<CartResponseDto> responseDtos = carts.stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
+
+        log.info("Retrieved {} carts for user: {}", carts.size(), currentUser.getId());
 
         return GenericResponse.builder()
                 .isSuccess(true)
@@ -291,25 +348,30 @@ public class CartServiceImpl implements CartService {
                 .lastActivityAt(LocalDateTime.now())
                 .build();
 
-        return cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart);
+        log.info("Created new cart {} for user {}", savedCart.getId(), user.getId());
+        return savedCart;
     }
 
     private Map<String, BigDecimal> fetchLiveExchangeRates() {
         Map<String, BigDecimal> rates = new HashMap<>();
-        
+
         try {
-            rates.put("USD_TO_NGN", 
+            rates.put("USD_TO_NGN",
                     exchangeRateService.getConversionRate(Currency.USD, Currency.NGN));
-            rates.put("EUR_TO_NGN", 
+            rates.put("EUR_TO_NGN",
                     exchangeRateService.getConversionRate(Currency.EUR, Currency.NGN));
+
+            log.debug("Fetched live exchange rates: {}", rates);
         } catch (Exception e) {
             log.warn("Failed to fetch live exchange rates: {}", e.getMessage());
         }
-        
+
         return rates;
     }
 
     private CartResponseDto mapToResponseDto(Cart cart) {
+        // Build order summaries
         List<CartResponseDto.OrderSummaryDto> orderSummaries = cart.getOrders().stream()
                 .map(order -> CartResponseDto.OrderSummaryDto.builder()
                         .orderId(order.getId())
@@ -322,6 +384,9 @@ public class CartServiceImpl implements CartService {
                         .currency(order.getAmountCurrency())
                         .build())
                 .collect(Collectors.toList());
+
+        log.debug("Mapped cart {} with {} orders to response DTO",
+                cart.getId(), orderSummaries.size());
 
         return CartResponseDto.builder()
                 .id(cart.getId())
