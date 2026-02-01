@@ -1,8 +1,8 @@
 package com.kudiapp.kudiapp.controller;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
+import com.kudiapp.kudiapp.dto.productService.InitPaymentResponse;
 import com.kudiapp.kudiapp.dto.request.payment.InitPaymentRequest;
-import com.kudiapp.kudiapp.dto.request.payment.InitPaymentResponse;
 import com.kudiapp.kudiapp.services.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
