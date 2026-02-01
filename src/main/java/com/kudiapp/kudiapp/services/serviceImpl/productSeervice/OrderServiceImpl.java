@@ -2,7 +2,7 @@ package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.OrderResponseDto;
-import com.kudiapp.kudiapp.dto.productService.ServiceRequestDto;
+import com.kudiapp.kudiapp.dto.productService.OrderRequestDto;
 import com.kudiapp.kudiapp.enums.productService.*;
 import com.kudiapp.kudiapp.exceptions.InvalidOperationException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
@@ -51,13 +51,13 @@ public class OrderServiceImpl implements OrderService {
     private static final BigDecimal SERVICE_FEE_PERCENTAGE = new BigDecimal("0.02");
 
     @Override
-    public GenericResponse createOrder(ServiceRequestDto request) {
-        log.info("Creating order for service product ID: {} and plan ID: {}", 
+    public GenericResponse createOrder(OrderRequestDto request) {
+        log.info("Creating order for service product ID: {} and plan ID: {}",
                 request.getServiceProductId(), request.getServicePlanId());
 
         // Get current user
         User currentUser = securityUtil.getCurrentLoggedInUser();
-        log.debug("Order creation requested by user: {} (ID: {})", 
+        log.debug("Order creation requested by user: {} (ID: {})",
                 currentUser.getEmail(), currentUser.getId());
 
         // Validate and fetch service product
@@ -66,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
 
         // Validate and fetch service plan
         ServiceProductPlan servicePlan = validateAndFetchServicePlan(
-                request.getServicePlanId(), 
+                request.getServicePlanId(),
                 serviceProduct.getId()
         );
 
@@ -83,14 +83,14 @@ public class OrderServiceImpl implements OrderService {
                 productPrice.getDefaultCurrency(),
                 Currency.NGN  // We standardize to NGN for payments
         );
-        log.debug("Current conversion rate from {} to NGN: {}", 
+        log.debug("Current conversion rate from {} to NGN: {}",
                 productPrice.getDefaultCurrency(), conversionRate);
 
         // Calculate amounts
         BigDecimal amountInNGN = productPrice.getDefaultPrice()
                 .multiply(conversionRate)
                 .setScale(4, RoundingMode.HALF_UP);
-        
+
         BigDecimal serviceFee = amountInNGN
                 .multiply(SERVICE_FEE_PERCENTAGE)
                 .setScale(4, RoundingMode.HALF_UP);
@@ -124,11 +124,15 @@ public class OrderServiceImpl implements OrderService {
 
         // Save order
         Order savedOrder = orderRepository.save(order);
-        log.info("Successfully created order with reference: {}", savedOrder.getOrderReference());
+        log.info("Successfully created order with reference: {}. Total: {} {}. isInCart: {}",
+                savedOrder.getOrderReference(),
+                savedOrder.getTotalAmount(),
+                savedOrder.getAmountCurrency(),
+                savedOrder.getIsInCart());
 
         return GenericResponse.builder()
                 .isSuccess(true)
-                .message("Order created successfully")
+                .message("Order created successfully. Use 'Add to Cart' to proceed with payment.")
                 .httpStatus(HttpStatus.CREATED)
                 .data(mapToResponseDto(savedOrder, false))
                 .build();
@@ -473,7 +477,7 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal conversionRate,
             BigDecimal amountInNGN,
             BigDecimal serviceFee,
-            ServiceRequestDto request) {
+            OrderRequestDto request) {
 
         return Order.builder()
                 .userId(user.getId())
