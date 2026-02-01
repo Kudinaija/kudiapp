@@ -237,6 +237,7 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidTokenException("Email verification failed...");
         }
         user.setVerified(true);
+        user.setVerificationDate(LocalDateTime.now());
         user.setEnabled(true);
         userRepository.save(user);
 

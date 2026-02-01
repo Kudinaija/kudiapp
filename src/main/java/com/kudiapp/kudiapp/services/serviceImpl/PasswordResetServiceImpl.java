@@ -27,7 +27,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 @Service
-@Transactional
 @Slf4j
 public class PasswordResetServiceImpl implements PasswordResetService {
     
@@ -80,7 +79,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
     @Override
-    public GenericResponse validateResetToken(String encodedToken) {
+    public GenericResponse      validateResetToken(String encodedToken) {
         String token = decodeToken(encodedToken); // decode before lookup
 
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
