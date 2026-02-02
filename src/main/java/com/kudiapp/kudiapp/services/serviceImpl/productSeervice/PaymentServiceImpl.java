@@ -2,8 +2,8 @@ package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kudiapp.kudiapp.config.PaystackHttpClient;
 import com.kudiapp.kudiapp.config.paystack.PaystackConfig;
+import com.kudiapp.kudiapp.config.paystack.PaystackHttpClient;
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.InitPaymentRequest;
 import com.kudiapp.kudiapp.dto.productService.InitPaymentResponse;
