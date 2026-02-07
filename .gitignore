@@ -41,3 +41,4 @@ build/
 application.properties
 application.yml
 bin/
+src/main/resources/application-local.properties
