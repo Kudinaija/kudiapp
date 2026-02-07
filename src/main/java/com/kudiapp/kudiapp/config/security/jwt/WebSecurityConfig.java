@@ -32,14 +32,19 @@ public class WebSecurityConfig {
             "/api/v1/media/**",
             "/verify-email/**",
             "/api/v1/users/**",
+            "/api/v1/cart/**",
+            "/api/v1/exchange-rates/**",
+            "/api/v1/notification/**",
+            "/api/v1/orders/**",
+            "/api/v1/product-plans/**",
+            "/api/v1/product-prices/**",
+            "/api/v1/admin/service-products/**",
             "/actuator/health",
             "/actuator/info",
             "/health",
             "/",
             "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui/index.html#/**",
-            "/swagger-ui.html/**"
+            "/swagger-ui/**"
     };
 
     public WebSecurityConfig(UserDetailsServiceImpl userDetailsService,

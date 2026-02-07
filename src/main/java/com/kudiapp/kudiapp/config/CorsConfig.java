@@ -15,12 +15,10 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Dev
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:5173");
         config.addAllowedOrigin("https://localhost:5173"); // if dev uses HTTPS
 
-        // Prod
         config.addAllowedOrigin("https://kudiapp-alb-1234567890.us-east-1.elb.amazonaws.com:8083");
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
