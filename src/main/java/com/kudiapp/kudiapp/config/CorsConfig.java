@@ -20,6 +20,8 @@ public class CorsConfig {
         config.addAllowedOrigin("https://localhost:5173"); // if dev uses HTTPS
 
         config.addAllowedOrigin("https://kudiapp-alb-1234567890.us-east-1.elb.amazonaws.com:8083");
+        config.addAllowedOrigin("https://api.kudi9ja.com");
+
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
