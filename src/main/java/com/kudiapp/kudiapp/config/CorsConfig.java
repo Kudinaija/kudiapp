@@ -21,6 +21,8 @@ public class CorsConfig {
 
         config.addAllowedOrigin("https://kudiapp-alb-1234567890.us-east-1.elb.amazonaws.com:8083");
         config.addAllowedOrigin("https://api.kudi9ja.com");
+        config.addAllowedOrigin("https://kudi9ja.com");
+        config.addAllowedOrigin("https://www.kudi9ja.com");
 
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
