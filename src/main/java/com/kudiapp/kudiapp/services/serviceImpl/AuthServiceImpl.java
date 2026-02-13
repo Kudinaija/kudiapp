@@ -132,16 +132,39 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public GenericResponse makeAdmin(String email) {
 
         if (email == null || email.trim().isEmpty()) {
             throw new InvalidCredentialsException("Provide valid email...");
         }
-        User user = userRepository.findByEmail(email).orElseThrow( () -> new UserNotFoundException("User not found for provided email:" + email));
-        Role role = roleRepository.findByRoleName("ROLE_ADMIN")
-                .orElseThrow(() -> new RoleNotFoundException("ROLE_ADMIN not found in database"));
-        user.getRoles().add(role);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found for provided email: " + email)
+                );
+
+        Role adminRole = roleRepository.findByRoleName("ROLE_ADMIN")
+                .orElseThrow(() ->
+                        new RoleNotFoundException("ROLE_ADMIN not found in database")
+                );
+
+        // ✅ Check if already admin
+        boolean isAlreadyAdmin = user.getRoles()
+                .stream()
+                .anyMatch(role -> role.getRoleName().equals("ROLE_ADMIN"));
+
+        if (isAlreadyAdmin) {
+            return GenericResponse.builder()
+                    .isSuccess(false)
+                    .message("User is already an admin")
+                    .httpStatus(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+
+        user.getRoles().add(adminRole);
         userRepository.save(user);
+
         return GenericResponse.builder()
                 .isSuccess(true)
                 .message("User is now an admin")
