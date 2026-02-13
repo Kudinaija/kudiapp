@@ -113,38 +113,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public GenericResponse login2fa(String email, String code) {
-        User user = userRepository.findByEmail(email).orElseThrow( () -> new UserNotFoundException("User not found for provided email:" + email));
-
-        boolean emailVerified = verificationCodeService.verifyOtpCode(email, code);
-        if (!emailVerified) {
-            throw new InvalidTokenException("Email verification failed...");
-        }
-        UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(user.getEmail());
-
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities());
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        String accessToken = generateAccessToken(authentication);
-        RefreshToken savedRefreshToken = refreshTokenService.createRefreshToken(user.getId());
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-
-        updateUserLastLogin(user);
-
-        LoginResponseDto responseDto = buildLoginResponseDto(
-                user, accessToken, savedRefreshToken, roles
-        );
-
-        return buildLoginSuccessResponse(responseDto);
-    }
-
-    @Override
-    @Transactional
     public GenericResponse register(RegisterRequest registerRequest) {
         if (registerRequest.getEmail() == null || registerRequest.getEmail().trim().isEmpty()) {
             throw new InvalidCredentialsException("Provide valid email...");
@@ -160,6 +128,24 @@ public class AuthServiceImpl implements AuthService {
                 .isSuccess(true)
                 .message("Account created successfully... Check and verify your email")
                 .httpStatus(HttpStatus.CREATED)
+                .build();
+    }
+
+    @Override
+    public GenericResponse makeAdmin(String email) {
+
+        if (email == null || email.trim().isEmpty()) {
+            throw new InvalidCredentialsException("Provide valid email...");
+        }
+        User user = userRepository.findByEmail(email).orElseThrow( () -> new UserNotFoundException("User not found for provided email:" + email));
+        Role role = roleRepository.findByRoleName("ROLE_ADMIN")
+                .orElseThrow(() -> new RoleNotFoundException("ROLE_ADMIN not found in database"));
+        user.getRoles().add(role);
+        userRepository.save(user);
+        return GenericResponse.builder()
+                .isSuccess(true)
+                .message("User is now an admin")
+                .httpStatus(HttpStatus.OK)
                 .build();
     }
 

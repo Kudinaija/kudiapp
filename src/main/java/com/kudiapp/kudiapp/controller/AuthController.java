@@ -35,6 +35,12 @@ public class AuthController {
         GenericResponse response = authService.register(registerRequest);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
+    @PutMapping("/make-user-admin")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<GenericResponse> makeAdmin(@RequestParam String email) {
+        GenericResponse response = authService.makeAdmin(email);
+        return new ResponseEntity<>(response, response.getHttpStatus());
+    }
 
     @GetMapping("/verify-email")
     public ResponseEntity<GenericResponse> verifyEmail(@RequestParam String email, @RequestParam String code) {
@@ -51,12 +57,6 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<GenericResponse> login(@RequestBody LoginRequest loginRequest) {
         GenericResponse response = authService.login(loginRequest);
-        return new ResponseEntity<>(response, response.getHttpStatus());
-    }
-
-    @PostMapping("/login2fa")
-    public ResponseEntity<GenericResponse> login2fa(@RequestParam String email, @RequestParam String code) {
-        GenericResponse response = authService.login2fa(email, code);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 

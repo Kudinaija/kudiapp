@@ -6,6 +6,7 @@ import com.kudiapp.kudiapp.dto.request.authDTOS.ContactUsRequest;
 import com.kudiapp.kudiapp.dto.request.authDTOS.LoginRequest;
 import com.kudiapp.kudiapp.dto.request.authDTOS.RegisterRequest;
 import com.kudiapp.kudiapp.dto.token.RefreshTokenRequest;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -28,5 +29,5 @@ public interface AuthService {
 
     GenericResponse resendOtp(String email);
 
-    GenericResponse login2fa(String email, String code);
+    GenericResponse makeAdmin(@Valid String email);
 }
