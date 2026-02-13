@@ -66,17 +66,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public GenericResponse toggleDisableUser(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        user.setEnabled(!user.isEnabled());
-        user.setUpdatedBy(securityUtil.getCurrentUserId());
-        user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
-        return new GenericResponse("User disabled successfully", HttpStatus.OK);
-    }
-
-    @Override
     public GenericResponse deleteUser(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         userRepository.delete(user);
@@ -111,7 +100,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public GenericResponse enableTwoFactor(Long id) {
+    public GenericResponse enableUser(Long id) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -124,7 +113,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
-        user.setEnable2Fa(true);
+        user.setEnabled(true);
         userRepository.save(user);
 
         return GenericResponse.builder()
@@ -137,7 +126,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public GenericResponse disableTwoFactor(Long id) {
+    public GenericResponse disableUser(Long id) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -150,7 +139,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
-        user.setEnable2Fa(false);
+        user.setEnabled(false);
         userRepository.save(user);
 
         return GenericResponse.builder()

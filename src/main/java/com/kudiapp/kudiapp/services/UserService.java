@@ -15,13 +15,11 @@ public interface UserService {
 
     GenericResponse updateUser(Long id, UserUpdateRequest userUpdateRequest);
 
-    GenericResponse toggleDisableUser(Long id);
-
     GenericResponse deleteUser(Long id);
 
     GenericResponse uploadUserProfilePicture(MultipartFile file, String description, String mediaType);
 
-    GenericResponse disableTwoFactor(Long id);
+    GenericResponse enableUser(Long id);
 
-    GenericResponse enableTwoFactor(Long id);
+    GenericResponse disableUser(Long id);
 }

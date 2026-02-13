@@ -56,14 +56,14 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<GenericResponse> enableUser(
             @PathVariable Long id) {
-        GenericResponse response = userService.enableTwoFactor(id);
+        GenericResponse response = userService.enableUser(id);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 
     @PutMapping("/disable/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<GenericResponse> disableUser(@PathVariable Long id) {
-        GenericResponse response = userService.disableTwoFactor(id);
+        GenericResponse response = userService.disableUser(id);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 }
