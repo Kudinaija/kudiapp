@@ -105,10 +105,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.isEnable2Fa()) {
+        if (user.isEnabled()) {
             return GenericResponse.builder()
                     .httpStatus(HttpStatus.BAD_REQUEST)
-                    .message("Two-factor authentication is already enabled")
+                    .message("User is already enabled")
                     .isSuccess(false)
                     .build();
         }
@@ -131,10 +131,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (!user.isEnable2Fa()) {
+        if (!user.isEnabled()) {
             return GenericResponse.builder()
                     .httpStatus(HttpStatus.BAD_REQUEST)
-                    .message("Two-factor authentication is already disabled")
+                    .message("User is already disabled")
                     .isSuccess(false)
                     .build();
         }
@@ -144,7 +144,7 @@ public class UserServiceImpl implements UserService {
 
         return GenericResponse.builder()
                 .httpStatus(HttpStatus.OK)
-                .message("Two-factor authentication disabled successfully")
+                .message("User disabled successfully")
                 .isSuccess(true)
                 .build();
     }
