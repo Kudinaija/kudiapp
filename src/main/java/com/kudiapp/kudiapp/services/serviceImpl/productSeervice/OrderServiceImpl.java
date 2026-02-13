@@ -32,6 +32,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Implementation of OrderService for managing product service orders
@@ -424,8 +425,10 @@ public class OrderServiceImpl implements OrderService {
         );
 
         // ✅ Total Revenue (ONLY SUCCESSFUL PAYMENTS)
-        BigDecimal totalRevenue = paymentRepository
-                .sumAmountByStatus(PaymentStatus.SUCCESS);
+        BigDecimal totalRevenue =
+                Optional.ofNullable(
+                        paymentRepository.sumAmountByStatus(PaymentStatus.SUCCESS)
+                ).orElse(BigDecimal.ZERO);
 
         statistics.put("totalRevenue", totalRevenue);
 
