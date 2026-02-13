@@ -3,12 +3,14 @@ package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.OrderResponseDto;
 import com.kudiapp.kudiapp.dto.productService.OrderRequestDto;
+import com.kudiapp.kudiapp.enums.PaymentStatus;
 import com.kudiapp.kudiapp.enums.productService.*;
 import com.kudiapp.kudiapp.exceptions.InvalidOperationException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
 import com.kudiapp.kudiapp.models.User;
 import com.kudiapp.kudiapp.models.productService.*;
 import com.kudiapp.kudiapp.repository.OrderRepository;
+import com.kudiapp.kudiapp.repository.PaymentRepository;
 import com.kudiapp.kudiapp.repository.ServiceProductPlanRepository;
 import com.kudiapp.kudiapp.repository.ServiceProductRepository;
 import com.kudiapp.kudiapp.services.productService.CurrencyExchangeRateService;
@@ -35,7 +37,6 @@ import java.util.Map;
  * Implementation of OrderService for managing product service orders
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @Transactional
 public class OrderServiceImpl implements OrderService {
@@ -43,12 +44,23 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ServiceProductRepository serviceProductRepository;
     private final ServiceProductPlanRepository servicePlanRepository;
+    private final PaymentRepository paymentRepository;
     private final CurrencyExchangeRateService exchangeRateService;
     private final CredentialEncryptionUtil encryptionUtil;
     private final SecurityUtil securityUtil;
 
     // Service fee percentage (e.g., 2% of order amount)
     private static final BigDecimal SERVICE_FEE_PERCENTAGE = new BigDecimal("0.02");
+
+    public OrderServiceImpl(OrderRepository orderRepository, ServiceProductRepository serviceProductRepository, ServiceProductPlanRepository servicePlanRepository, PaymentRepository paymentRepository, CurrencyExchangeRateService exchangeRateService, CredentialEncryptionUtil encryptionUtil, SecurityUtil securityUtil) {
+        this.orderRepository = orderRepository;
+        this.serviceProductRepository = serviceProductRepository;
+        this.servicePlanRepository = servicePlanRepository;
+        this.paymentRepository = paymentRepository;
+        this.exchangeRateService = exchangeRateService;
+        this.encryptionUtil = encryptionUtil;
+        this.securityUtil = securityUtil;
+    }
 
     @Override
     public GenericResponse createOrder(OrderRequestDto request) {
@@ -410,6 +422,12 @@ public class OrderServiceImpl implements OrderService {
                 "pendingAdminReview",
                 orderRepository.countByActionIn(pendingActions)
         );
+
+        // ✅ Total Revenue (ONLY SUCCESSFUL PAYMENTS)
+        BigDecimal totalRevenue = paymentRepository
+                .sumAmountByStatus(PaymentStatus.SUCCESS);
+
+        statistics.put("totalRevenue", totalRevenue);
 
         return GenericResponse.builder()
                 .isSuccess(true)
