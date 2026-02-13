@@ -44,12 +44,6 @@ public class UserController {
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 
-    @PostMapping("/2fa")
-    public ResponseEntity<GenericResponse> toggleTwoFactor() {
-        GenericResponse genericResponse = userService.toggleTwoFactor();
-        return new ResponseEntity<>(genericResponse, genericResponse.getHttpStatus());
-    }
-
     @PutMapping("/update/{id}")
     public ResponseEntity<GenericResponse> updateUser(
             @PathVariable Long id,
@@ -58,11 +52,18 @@ public class UserController {
         GenericResponse response = userService.updateUser(id, userUpdateRequest);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
+    @PutMapping("/enable/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<GenericResponse> enableUser(
+            @PathVariable Long id) {
+        GenericResponse response = userService.enableTwoFactor(id);
+        return new ResponseEntity<>(response, response.getHttpStatus());
+    }
 
     @PutMapping("/disable/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<GenericResponse> disableUser(@PathVariable Long id) {
-        GenericResponse response = userService.toggleDisableUser(id);
+        GenericResponse response = userService.disableTwoFactor(id);
         return new ResponseEntity<>(response, response.getHttpStatus());
     }
 }

@@ -21,5 +21,7 @@ public interface UserService {
 
     GenericResponse uploadUserProfilePicture(MultipartFile file, String description, String mediaType);
 
-    GenericResponse toggleTwoFactor();
+    GenericResponse disableTwoFactor(Long id);
+
+    GenericResponse enableTwoFactor(Long id);
 }

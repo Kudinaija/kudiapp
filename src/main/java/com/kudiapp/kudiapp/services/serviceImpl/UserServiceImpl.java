@@ -110,16 +110,52 @@ public class UserServiceImpl implements UserService {
         }
 
     @Override
-    public GenericResponse toggleTwoFactor() {
-        User user = securityUtil.getCurrentLoggedInUser();
+    @Transactional
+    public GenericResponse enableTwoFactor(Long id) {
 
-        user.setEnable2Fa(!user.isEnable2Fa());
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.isEnable2Fa()) {
+            return GenericResponse.builder()
+                    .httpStatus(HttpStatus.BAD_REQUEST)
+                    .message("Two-factor authentication is already enabled")
+                    .isSuccess(false)
+                    .build();
+        }
+
+        user.setEnable2Fa(true);
         userRepository.save(user);
-        String message = user.isEnable2Fa()? "@FA enabled": "@FA disabled";
 
         return GenericResponse.builder()
                 .httpStatus(HttpStatus.OK)
-                .message(message)
+                .message("Two-factor authentication enabled successfully")
+                .isSuccess(true)
+                .build();
+    }
+
+
+    @Override
+    @Transactional
+    public GenericResponse disableTwoFactor(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isEnable2Fa()) {
+            return GenericResponse.builder()
+                    .httpStatus(HttpStatus.BAD_REQUEST)
+                    .message("Two-factor authentication is already disabled")
+                    .isSuccess(false)
+                    .build();
+        }
+
+        user.setEnable2Fa(false);
+        userRepository.save(user);
+
+        return GenericResponse.builder()
+                .httpStatus(HttpStatus.OK)
+                .message("Two-factor authentication disabled successfully")
                 .isSuccess(true)
                 .build();
     }
