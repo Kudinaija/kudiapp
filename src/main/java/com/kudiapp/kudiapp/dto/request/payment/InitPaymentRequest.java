@@ -1,22 +1,29 @@
 package com.kudiapp.kudiapp.dto.request.payment;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.Map;
-
+import java.util.List;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class InitPaymentRequest {
-    private String email;                 // Customer email
-    private String reference;             // Your internal transaction ref
-    private BigDecimal amount;                  // amount in smallest unit (cents/kobo)
-    private String currency;              // e.g. "usd" or "ngn"
-    private Map<String, Object> metadata;
+
+    private String email;
+    private String reference;
+    private String currency;
+    private Long amount; // amount in main unit (e.g., NGN)
+
+    // Optional: cart items if you want to support multiple
+    private List<CartItem> items;
+
+    // ✅ Add URLs for Checkout Session
+    private String successUrl;
+    private String cancelUrl;
+
+    @Data
+    public static class CartItem {
+        private String name;
+        private int quantity;
+        private Long price; // smallest currency unit
+    }
 }

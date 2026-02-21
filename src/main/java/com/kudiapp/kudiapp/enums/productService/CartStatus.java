@@ -5,8 +5,9 @@ import lombok.Getter;
 @Getter
 public enum CartStatus {
     ACTIVE("Active - Can be modified"),
-    CHECKED_OUT("Checked out - Payment initiated"),
+    CHECKOUT_INITIATED("Checked out - Payment initiated"),
     COMPLETED("Completed - Payment successful"),
+    FAILED("Failed - Payment failed"),
     ABANDONED("Abandoned - Inactive for long period"),
     EXPIRED("Expired - Exceeded time limit");
 
@@ -21,6 +22,6 @@ public enum CartStatus {
     }
 
     public boolean isFinalized() {
-        return this == CHECKED_OUT || this == COMPLETED;
+        return this == CHECKOUT_INITIATED || this == COMPLETED;
     }
 }

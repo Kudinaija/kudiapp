@@ -8,4 +8,5 @@ import lombok.Data;
 public class InitPaymentResponse {
     private String paymentIntentId;
     private String clientSecret;
+    private String url;
 }

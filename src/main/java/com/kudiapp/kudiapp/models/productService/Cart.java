@@ -55,6 +55,9 @@ public class Cart extends BaseEntity {
     @Column(name = "cart_reference", nullable = false, unique = true, length = 50)
     private String cartReference;
 
+    @Column(name = "stripe_session_id")
+    private String stripeSessionId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
@@ -136,7 +139,7 @@ public class Cart extends BaseEntity {
     }
 
     public void checkout(String paymentRef) {
-        this.status = CartStatus.CHECKED_OUT;
+        this.status = CartStatus.CHECKOUT_INITIATED;
         this.checkedOutAt = LocalDateTime.now();
         this.paymentReference = paymentRef;
         orders.forEach(order -> order.setIsInCart(false));
