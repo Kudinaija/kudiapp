@@ -233,7 +233,6 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public GenericResponse getCartSummary() {
         log.info("Retrieving cart summary with live exchange rates");
 
@@ -467,17 +466,31 @@ public class CartServiceImpl implements CartService {
     }
 
     private Map<String, BigDecimal> fetchLiveExchangeRates() {
+
         Map<String, BigDecimal> rates = new HashMap<>();
 
+        // USD → NGN
         try {
-            rates.put("USD_TO_NGN",
-                    exchangeRateService.getConversionRate(Currency.USD, Currency.NGN));
-            rates.put("EUR_TO_NGN",
-                    exchangeRateService.getConversionRate(Currency.EUR, Currency.NGN));
-
-            log.debug("Fetched live exchange rates: {}", rates);
+            BigDecimal usdRate =
+                    exchangeRateService.getConversionRate(Currency.USD, Currency.NGN);
+            rates.put("USD_TO_NGN", usdRate);
         } catch (Exception e) {
-            log.warn("Failed to fetch live exchange rates: {}", e.getMessage());
+            log.warn("USD to NGN rate unavailable: {}", e.getMessage());
+        }
+
+        // EUR → NGN
+        try {
+            BigDecimal eurRate =
+                    exchangeRateService.getConversionRate(Currency.EUR, Currency.NGN);
+            rates.put("EUR_TO_NGN", eurRate);
+        } catch (Exception e) {
+            log.warn("EUR to NGN rate unavailable: {}", e.getMessage());
+        }
+
+        if (rates.isEmpty()) {
+            log.warn("No live exchange rates available");
+        } else {
+            log.debug("Fetched live exchange rates: {}", rates);
         }
 
         return rates;
