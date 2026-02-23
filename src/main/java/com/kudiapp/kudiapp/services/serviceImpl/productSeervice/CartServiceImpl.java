@@ -16,6 +16,8 @@ import com.kudiapp.kudiapp.services.productService.CartService;
 import com.kudiapp.kudiapp.services.productService.CurrencyExchangeRateService;
 import com.kudiapp.kudiapp.utills.ReferenceGeneratorUtil;
 import com.kudiapp.kudiapp.utills.SecurityUtil;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -260,6 +262,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @SneakyThrows
     public GenericResponse proceedToCheckout() {
+
         log.info("Processing checkout for current user");
 
         User currentUser = securityUtil.getCurrentLoggedInUser();
@@ -278,7 +281,7 @@ public class CartServiceImpl implements CartService {
                     "Cart has already been checked out or is in invalid status: " + cart.getStatus());
         }
 
-        // Validate all orders are in pending status
+        // Validate all orders are pending
         boolean hasNonPendingOrders = cart.getOrders().stream()
                 .anyMatch(order -> !OrderStatus.PENDING.equals(order.getStatus()));
 
@@ -295,7 +298,56 @@ public class CartServiceImpl implements CartService {
         Cart savedCart = cartRepository.save(cart);
 
         log.info("Successfully prepared cart {} for checkout. Payment reference: {}, Total: {} {}",
-                savedCart.getId(), paymentReference, savedCart.getTotalAmount(), savedCart.getCurrency());
+                savedCart.getId(),
+                paymentReference,
+                savedCart.getTotalAmount(),
+                savedCart.getCurrency());
+
+        // ================================
+        //  STRIPE CHECKOUT SESSION
+        // ================================
+
+        // Convert amount to smallest currency unit
+        long amountInSmallestUnit = savedCart.getTotalAmount()
+                .multiply(BigDecimal.valueOf(100))
+                .longValue();
+
+        String successUrl = "https://kudi9ja.com/payment-success?reference=" + paymentReference;
+        String cancelUrl = "https://kudi9ja.com/payment-cancel?reference=" + paymentReference;
+
+        SessionCreateParams params =
+                SessionCreateParams.builder()
+                        .setMode(SessionCreateParams.Mode.PAYMENT)
+                        .setSuccessUrl(successUrl)
+                        .setCancelUrl(cancelUrl)
+                        .addLineItem(
+                                SessionCreateParams.LineItem.builder()
+                                        .setQuantity(1L)
+                                        .setPriceData(
+                                                SessionCreateParams.LineItem.PriceData.builder()
+                                                        .setCurrency(savedCart.getCurrency().toString())
+                                                        .setUnitAmount(amountInSmallestUnit)
+                                                        .setProductData(
+                                                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                        .setName("Kudi Cart Checkout")
+                                                                        .build()
+                                                        )
+                                                        .build()
+                                        )
+                                        .build()
+                        )
+                        .putMetadata("paymentReference", paymentReference)
+                        .putMetadata("cartReference", savedCart.getCartReference())
+                        .putMetadata("userId", String.valueOf(currentUser.getId()))
+                        .build();
+
+        Session session = Session.create(params);
+
+        log.info("Stripe session created: {}", session.getId());
+
+        // ================================
+        //  RESPONSE DATA
+        // ================================
 
         Map<String, Object> checkoutData = new HashMap<>();
         checkoutData.put("cartReference", savedCart.getCartReference());
@@ -306,6 +358,10 @@ public class CartServiceImpl implements CartService {
         checkoutData.put("subtotal", savedCart.getSubtotal());
         checkoutData.put("serviceFee", savedCart.getTotalServiceFee());
 
+        // NEW FIELDS
+        checkoutData.put("checkoutUrl", session.getUrl());
+        checkoutData.put("stripeSessionId", session.getId());
+
         return GenericResponse.builder()
                 .isSuccess(true)
                 .message("Cart prepared for checkout successfully")
@@ -313,6 +369,63 @@ public class CartServiceImpl implements CartService {
                 .data(checkoutData)
                 .build();
     }
+
+//    @Override
+//    @SneakyThrows
+//    public GenericResponse proceedToCheckout() {
+//        log.info("Processing checkout for current user");
+//
+//        User currentUser = securityUtil.getCurrentLoggedInUser();
+//
+//        Cart cart = cartRepository.findActiveCartByUserId(currentUser.getId())
+//                .orElseThrow(() -> new ResourceNotFoundException("No active cart found"));
+//
+//        // Validate cart is not empty
+//        if (cart.isEmpty()) {
+//            throw new InvalidOperationException("Cannot checkout with empty cart");
+//        }
+//
+//        // Validate cart can be checked out
+//        if (!cart.canBeModified()) {
+//            throw new InvalidOperationException(
+//                    "Cart has already been checked out or is in invalid status: " + cart.getStatus());
+//        }
+//
+//        // Validate all orders are in pending status
+//        boolean hasNonPendingOrders = cart.getOrders().stream()
+//                .anyMatch(order -> !OrderStatus.PENDING.equals(order.getStatus()));
+//
+//        if (hasNonPendingOrders) {
+//            throw new InvalidOperationException(
+//                    "Cart contains orders that are not in pending status");
+//        }
+//
+//        // Generate payment reference
+//        String paymentReference = ReferenceGeneratorUtil.generatePaymentReference();
+//
+//        // Update cart status
+//        cart.checkout(paymentReference);
+//        Cart savedCart = cartRepository.save(cart);
+//
+//        log.info("Successfully prepared cart {} for checkout. Payment reference: {}, Total: {} {}",
+//                savedCart.getId(), paymentReference, savedCart.getTotalAmount(), savedCart.getCurrency());
+//
+//        Map<String, Object> checkoutData = new HashMap<>();
+//        checkoutData.put("cartReference", savedCart.getCartReference());
+//        checkoutData.put("paymentReference", paymentReference);
+//        checkoutData.put("totalAmount", savedCart.getTotalAmount());
+//        checkoutData.put("currency", savedCart.getCurrency());
+//        checkoutData.put("itemCount", savedCart.getItemCount());
+//        checkoutData.put("subtotal", savedCart.getSubtotal());
+//        checkoutData.put("serviceFee", savedCart.getTotalServiceFee());
+//
+//        return GenericResponse.builder()
+//                .isSuccess(true)
+//                .message("Cart prepared for checkout successfully")
+//                .httpStatus(HttpStatus.OK)
+//                .data(checkoutData)
+//                .build();
+//    }
 
     @Override
     @Transactional(readOnly = true)
