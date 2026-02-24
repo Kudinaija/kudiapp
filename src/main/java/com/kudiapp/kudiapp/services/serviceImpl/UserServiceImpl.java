@@ -3,11 +3,13 @@ package com.kudiapp.kudiapp.services.serviceImpl;
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.request.MediaUploadRequest;
 import com.kudiapp.kudiapp.dto.request.authDTOS.UserUpdateRequest;
+import com.kudiapp.kudiapp.dto.response.UserResponseDTO;
 import com.kudiapp.kudiapp.exceptions.FailedProcessException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
 import com.kudiapp.kudiapp.exceptions.UserNotFoundException;
 import com.kudiapp.kudiapp.models.Media;
 import com.kudiapp.kudiapp.models.User;
+import com.kudiapp.kudiapp.models.approles.Role;
 import com.kudiapp.kudiapp.repository.UserRepository;
 import com.kudiapp.kudiapp.services.MediaService;
 import com.kudiapp.kudiapp.services.UserService;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -40,29 +43,46 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public GenericResponse getAllUsers(int page, int size) {
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         Page<User> users = userRepository.findAll(pageable);
 
-        return new GenericResponse("Users fetched successfully", HttpStatus.OK, users);
+        Page<UserResponseDTO> response = users.map(this::mapToUserResponse);
+
+        return new GenericResponse("Users fetched successfully", HttpStatus.OK, response);
     }
 
     @Override
     public GenericResponse getUserById(Long id) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return new GenericResponse("User found", HttpStatus.OK, user);
+
+        return new GenericResponse(
+                "User found",
+                HttpStatus.OK,
+                mapToUserResponse(user)
+        );
     }
 
     @Override
     public GenericResponse updateUser(Long id, UserUpdateRequest userUpdateRequest) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         user.setFirstname(userUpdateRequest.getFirstname());
         user.setLastname(userUpdateRequest.getLastname());
         user.setPhoneNumber(userUpdateRequest.getPhoneNumber());
         user.setUpdatedAt(LocalDateTime.now());
+
         userRepository.save(user);
-        return new GenericResponse("User updated successfully", HttpStatus.OK, user);
+
+        return new GenericResponse(
+                "User updated successfully",
+                HttpStatus.OK,
+                mapToUserResponse(user)
+        );
     }
 
     @Override
@@ -118,11 +138,10 @@ public class UserServiceImpl implements UserService {
 
         return GenericResponse.builder()
                 .httpStatus(HttpStatus.OK)
-                .message("Two-factor authentication enabled successfully")
+                .message("User enabled successfully")
                 .isSuccess(true)
                 .build();
     }
-
 
     @Override
     @Transactional
@@ -146,6 +165,30 @@ public class UserServiceImpl implements UserService {
                 .httpStatus(HttpStatus.OK)
                 .message("User disabled successfully")
                 .isSuccess(true)
+                .build();
+    }
+
+    private UserResponseDTO mapToUserResponse(User user) {
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
+                .email(user.getEmail())
+                .enabled(user.isEnabled())
+                .verified(user.isVerified())
+                .profilePicture(user.getProfilePicture())
+                .userUUID(user.getUserUUID())
+                .username(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                .roles(
+                        user.getRoles() == null ? List.of() :
+                                user.getRoles()
+                                        .stream()
+                                        .map(Role::getRoleName)
+                                        .toList()
+                )
                 .build();
     }
 }

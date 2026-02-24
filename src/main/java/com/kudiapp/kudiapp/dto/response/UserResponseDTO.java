@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -16,12 +17,17 @@ import java.util.Set;
 @AllArgsConstructor
 public class UserResponseDTO {
 
-        private Long id;
-        private String firstname;
-        private String lastname;
-        private String email;
-        private String profilePicture;
-        private String phoneNumber;
-        private LocalDateTime lastLoginAt;
-        private Set<Role> roles = new HashSet<>();
+    private Long id;
+    private String firstname;
+    private String lastname;
+    private String email;
+    private boolean enabled;
+    private boolean verified;
+    private String profilePicture;
+    private String userUUID;
+    private String username;
+    private List<String> roles;
+    private String phoneNumber;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
 }
