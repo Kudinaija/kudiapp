@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -401,7 +402,9 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
         plan.setCurrency(request.getCurrency());
         plan.setPlanDescription(request.getPlanDescription());
         plan.setDisplayOrder(request.getDisplayOrder());
-        
+        plan.setCreatedAt(LocalDateTime.now());
+        plan.setUpdatedAt(LocalDateTime.now());
+
         if (request.getStatus() != null) {
             plan.setStatus(request.getStatus());
         } else if (plan.getStatus() == null) {
