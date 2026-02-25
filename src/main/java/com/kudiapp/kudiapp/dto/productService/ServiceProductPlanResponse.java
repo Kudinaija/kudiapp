@@ -24,6 +24,7 @@ public class ServiceProductPlanResponse {
     private BigDecimal amount;
     private Currency currency;
     private BigDecimal serviceFeePercentage;
+    private Long productPriceId;
     private ServiceProductPlanStatus status;
     private ServiceProductPlanType planType;
     private String planDescription;
