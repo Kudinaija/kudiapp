@@ -445,6 +445,8 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
                 .serviceProductId(plan.getServiceProduct().getId())
                 .serviceProductTitle(plan.getServiceProduct().getProductTitle().getDescription())
                 .status(plan.getStatus())
+                .amount(plan.getProductPrice().getDefaultPrice())
+                .currency(plan.getProductPrice().getDefaultCurrency())
                 .planType(plan.getPlanType())
                 .planDescription(plan.getPlanDescription())
                 .displayOrder(plan.getDisplayOrder())
