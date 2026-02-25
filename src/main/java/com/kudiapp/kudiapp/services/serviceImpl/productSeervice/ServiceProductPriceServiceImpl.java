@@ -191,6 +191,7 @@ public class ServiceProductPriceServiceImpl implements ServiceProductPriceServic
                 .defaultPrice(price.getDefaultPrice())
                 .defaultCurrency(price.getDefaultCurrency())
                 .amountToPay(price.getAmountToPay())
+                .serviceFeePercentage(price.getServiceFeePercentage())
                 .amountCurrency(price.getAmountCurrency())
                 .conversionRate(price.getConversionRate())
                 .rateTimestamp(price.getRateTimestamp())

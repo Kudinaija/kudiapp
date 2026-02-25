@@ -23,6 +23,7 @@ public class ServiceProductPriceResponse {
     private BigDecimal amountToPay;
     private Currency amountCurrency;
     private BigDecimal conversionRate;
+    private BigDecimal serviceFeePercentage;
     private Long rateTimestamp;
     private String rateSource;
     private Boolean isRateStale;
