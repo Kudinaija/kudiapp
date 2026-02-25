@@ -23,6 +23,7 @@ public class ServiceProductPlanResponse {
     private String serviceProductTitle;
     private BigDecimal amount;
     private Currency currency;
+    private BigDecimal serviceFeePercentage;
     private ServiceProductPlanStatus status;
     private ServiceProductPlanType planType;
     private String planDescription;

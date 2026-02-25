@@ -448,6 +448,7 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
                 .planType(plan.getPlanType())
                 .currency(plan.getProductPrice() != null? plan.getProductPrice().getDefaultCurrency(): null)
                 .amount(plan.getProductPrice() != null ? plan.getProductPrice().getDefaultPrice(): null)
+                .serviceFeePercentage(plan.getProductPrice() != null ? plan.getProductPrice().getServiceFeePercentage(): null)
                 .planDescription(plan.getPlanDescription())
                 .displayOrder(plan.getDisplayOrder())
                 .isFeatured(plan.getIsFeatured())
