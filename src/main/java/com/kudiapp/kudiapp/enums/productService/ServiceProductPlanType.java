@@ -7,6 +7,7 @@ public enum ServiceProductPlanType {
     DEFAULT("Default"),
     PREMIUM("Premium"),
     BASIC("Basic"),
+    STANDARD("Standard"),
     CUSTOM("Custom");
 
     private final String displayName;
