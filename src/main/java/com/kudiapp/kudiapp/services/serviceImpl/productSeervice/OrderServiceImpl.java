@@ -49,9 +49,6 @@ public class OrderServiceImpl implements OrderService {
     private final CredentialEncryptionUtil encryptionUtil;
     private final SecurityUtil securityUtil;
 
-    // Service fee percentage (e.g., 2% of order amount)
-    private static final BigDecimal SERVICE_FEE_PERCENTAGE = new BigDecimal("0.02");
-
     public OrderServiceImpl(OrderRepository orderRepository, ServiceProductRepository serviceProductRepository, ServiceProductPlanRepository servicePlanRepository, PaymentRepository paymentRepository, CurrencyExchangeRateService exchangeRateService, CredentialEncryptionUtil encryptionUtil, SecurityUtil securityUtil) {
         this.orderRepository = orderRepository;
         this.serviceProductRepository = serviceProductRepository;
@@ -104,7 +101,7 @@ public class OrderServiceImpl implements OrderService {
                 .setScale(4, RoundingMode.HALF_UP);
 
         BigDecimal serviceFee = amountInNGN
-                .multiply(SERVICE_FEE_PERCENTAGE)
+                .multiply(productPrice.getServiceFeePercentage())
                 .setScale(4, RoundingMode.HALF_UP);
 
         // Create order

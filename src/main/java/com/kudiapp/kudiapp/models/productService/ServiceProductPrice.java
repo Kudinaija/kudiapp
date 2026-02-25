@@ -42,6 +42,10 @@ public class ServiceProductPrice extends BaseEntity {
     @Column(name = "default_currency", nullable = false, length = 10)
     private Currency defaultCurrency;
 
+    @Column(name = "service_fee_percentage", nullable = false)
+    private BigDecimal serviceFeePercentage = new BigDecimal("0.02");
+
+
     @Column(name = "amount_to_pay", nullable = false, precision = 19, scale = 4)
     private BigDecimal amountToPay;
 

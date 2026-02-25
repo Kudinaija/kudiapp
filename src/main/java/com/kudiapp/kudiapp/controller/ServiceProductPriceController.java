@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/v1/product-prices")
 @RequiredArgsConstructor
@@ -61,6 +63,28 @@ public class ServiceProductPriceController {
             @Parameter(description = "Product price ID") @PathVariable Long id) {
         GenericResponse response = productPriceService.refreshProductPriceRate(id);
         return ResponseEntity.status(response.getHttpStatus()).body(response);
+    }
+
+    @PutMapping("/product-prices/{id}/update-service-fee")
+    @Operation(summary = "Update Service Fee",
+            description = "Update the service fee percentage for a product price")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Service fee updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Product price not found")
+    })
+    public ResponseEntity<GenericResponse> serviceFeeUpdate(
+            @Parameter(description = "Product price ID")
+            @PathVariable Long productPriceId,
+
+            @Parameter(description = "New service fee percentage (e.g 0.02 for 2%)")
+            @RequestParam BigDecimal newFee
+    ) {
+        GenericResponse response =
+                productPriceService.serviceFeeUpdate(productPriceId, newFee);
+
+        return ResponseEntity
+                .status(response.getHttpStatus())
+                .body(response);
     }
 
     @DeleteMapping("/{id}")

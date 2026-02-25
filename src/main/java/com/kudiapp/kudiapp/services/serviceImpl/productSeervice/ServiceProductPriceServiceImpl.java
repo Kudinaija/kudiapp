@@ -123,6 +123,35 @@ public class ServiceProductPriceServiceImpl implements ServiceProductPriceServic
                 .build();
     }
 
+    @Override
+    @Transactional
+    public GenericResponse serviceFeeUpdate(Long productPriceId, BigDecimal newFee) {
+
+        log.info("Updating service fee for product price ID: {}", productPriceId);
+
+        if (newFee == null || newFee.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Service fee must be >= 0");
+        }
+
+        ServiceProductPrice price = productPriceRepository
+                .findById(productPriceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Product price not found with ID: " + productPriceId
+                        ));
+
+        // Update service fee
+        price.setServiceFeePercentage(newFee);
+        productPriceRepository.save(price);
+
+        return GenericResponse.builder()
+                .isSuccess(true)
+                .message("Service fee updated successfully")
+                .httpStatus(HttpStatus.OK)
+                .data(mapToResponse(price))
+                .build();
+    }
+
     private ServiceProductPlan findServicePlanById(Long id) {
         return productPlanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
