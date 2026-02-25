@@ -3,6 +3,7 @@ package com.kudiapp.kudiapp.services.serviceImpl.productSeervice;
 import com.kudiapp.kudiapp.dto.GenericResponse;
 import com.kudiapp.kudiapp.dto.productService.ServiceProductPlanRequest;
 import com.kudiapp.kudiapp.dto.productService.ServiceProductPlanResponse;
+import com.kudiapp.kudiapp.dto.productService.ServiceProductPriceRequest;
 import com.kudiapp.kudiapp.enums.productService.ServiceProductPlanStatus;
 import com.kudiapp.kudiapp.enums.productService.ServiceProductPlanType;
 import com.kudiapp.kudiapp.exceptions.InvalidOperationException;
@@ -10,10 +11,12 @@ import com.kudiapp.kudiapp.exceptions.ResourceAlreadyExistsException;
 import com.kudiapp.kudiapp.exceptions.ResourceNotFoundException;
 import com.kudiapp.kudiapp.models.productService.ServiceProduct;
 import com.kudiapp.kudiapp.models.productService.ServiceProductPlan;
+import com.kudiapp.kudiapp.models.productService.ServiceProductPrice;
 import com.kudiapp.kudiapp.repository.OrderRepository;
 import com.kudiapp.kudiapp.repository.ServiceProductPlanRepository;
 import com.kudiapp.kudiapp.repository.ServiceProductRepository;
 import com.kudiapp.kudiapp.services.productService.ServiceProductPlanService;
+import com.kudiapp.kudiapp.services.productService.ServiceProductPriceService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +42,7 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
     private final ServiceProductPlanRepository planRepository;
     private final ServiceProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final ServiceProductPriceService serviceProductPriceService;
 
     @Override
     @SneakyThrows
@@ -64,8 +68,18 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
         // Build and save plan
         ServiceProductPlan plan = buildProductPlanFromRequest(new ServiceProductPlan(), request);
         plan.setServiceProduct(serviceProduct);
-        
-        ServiceProductPlan savedPlan = planRepository.save(plan);
+        ServiceProductPlan savedPlan = planRepository.saveAndFlush(plan);
+
+        serviceProductPriceService.createOrUpdateProductPrice(
+                ServiceProductPriceRequest.builder()
+                        .servicePlanId(savedPlan.getId())
+                        .defaultPrice(request.getAmount())
+                        .amount(request.getAmount())
+                        .defaultCurrency(request.getCurrency())
+                        .amountCurrency(request.getCurrency())
+                        .build()
+        );
+
         log.info("Successfully created product plan with ID: {}", savedPlan.getId());
 
         return GenericResponse.builder()
@@ -398,8 +412,6 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
             ServiceProductPlanRequest request) {
         
         plan.setPlanName(request.getPlanName());
-        plan.setAmount(request.getAmount());
-        plan.setCurrency(request.getCurrency());
         plan.setPlanDescription(request.getPlanDescription());
         plan.setDisplayOrder(request.getDisplayOrder());
         plan.setCreatedAt(LocalDateTime.now());
@@ -432,8 +444,6 @@ public class ServiceProductPlanServiceImpl implements ServiceProductPlanService 
                 .planName(plan.getPlanName())
                 .serviceProductId(plan.getServiceProduct().getId())
                 .serviceProductTitle(plan.getServiceProduct().getProductTitle().getDescription())
-                .amount(plan.getAmount())
-                .currency(plan.getCurrency())
                 .status(plan.getStatus())
                 .planType(plan.getPlanType())
                 .planDescription(plan.getPlanDescription())
