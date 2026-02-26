@@ -13,6 +13,7 @@ public enum PRODUCT_TITLE {
     IN_GAME_PURCHASE("Purchase inside a game"),
     MUSIC_DISTRIBUTION("Music distribution service"),
     AMAZON_ECOMMERCE("Amazon ecommerce related payment"),
+    FASHION_ELECTRONICS("Fashion & Electronics"),
     TECH_DESIGN_TOOLS("Technical or design tool payment"),
     CLOUD_SERVICES("Cloud service subscription payment"),
     DOMAINS_HOSTING("Domain and hosting payment"),
