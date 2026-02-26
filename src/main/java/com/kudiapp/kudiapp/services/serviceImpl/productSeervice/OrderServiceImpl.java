@@ -59,27 +59,116 @@ public class OrderServiceImpl implements OrderService {
         this.securityUtil = securityUtil;
     }
 
+//    @Override
+//    public GenericResponse createOrder(OrderRequestDto request) {
+//        log.info("Creating order for service product ID: {} and plan ID: {}",
+//                request.getServiceProductId(), request.getServicePlanId());
+//        // Get current user
+//        User currentUser = securityUtil.getCurrentLoggedInUser();
+//        log.debug("Order creation requested by user: {} (ID: {})",
+//                currentUser.getEmail(), currentUser.getId());
+//
+//        // Validate and fetch service product
+//        ServiceProduct serviceProduct = validateAndFetchServiceProduct(
+//                request.getServiceProductId());
+//
+//        // Validate and fetch service plan
+//        ServiceProductPlan servicePlan = validateAndFetchServicePlan(
+//                request.getServicePlanId(),
+//                serviceProduct.getId()
+//        );
+//
+//        // Fetch product price
+//        ServiceProductPrice productPrice = servicePlan.getProductPrice();
+//        if (productPrice == null) {
+//            log.error("No price configured for service plan ID: {}", servicePlan.getId());
+//            throw new ResourceNotFoundException(
+//                    "Price not configured for the selected service plan");
+//        }
+//
+//        // Get latest conversion rate
+//        BigDecimal conversionRate = exchangeRateService.getConversionRate(
+//                productPrice.getDefaultCurrency(),
+//                Currency.NGN  // We standardize to NGN for payments
+//        );
+//        log.debug("Current conversion rate from {} to NGN: {}",
+//                productPrice.getDefaultCurrency(), conversionRate);
+//
+//        // Calculate amounts
+//        BigDecimal amountInNGN = productPrice.getDefaultPrice()
+//                .multiply(conversionRate)
+//                .setScale(4, RoundingMode.HALF_UP);
+//
+//        BigDecimal serviceFee = amountInNGN
+//                .multiply(productPrice.getServiceFeePercentage())
+//                .setScale(4, RoundingMode.HALF_UP);
+//
+//        // Create order
+//        Order order = buildOrder(
+//                currentUser,
+//                serviceProduct,
+//                servicePlan,
+//                productPrice,
+//                conversionRate,
+//                amountInNGN,
+//                serviceFee,
+//                request
+//        );
+//
+//        // Encrypt credentials if provided
+//        if (request.getCredentialUsernameOrEmail() != null) {
+//            order.setCredentialUsernameOrEmail(
+//                    encryptionUtil.encrypt(request.getCredentialUsernameOrEmail())
+//            );
+//        }
+//        if (request.getCredentialPassword() != null) {
+//            order.setCredentialPassword(
+//                    encryptionUtil.encrypt(request.getCredentialPassword())
+//            );
+//        }
+//
+//        // Calculate total amount
+//        order.calculateTotalAmount();
+//
+//        // Save order
+//        Order savedOrder = orderRepository.save(order);
+//        log.info("Successfully created order with reference: {}. Total: {} {}. isInCart: {}",
+//                savedOrder.getOrderReference(),
+//                savedOrder.getTotalAmount(),
+//                savedOrder.getAmountCurrency(),
+//                savedOrder.getIsInCart());
+//
+//        return GenericResponse.builder()
+//                .isSuccess(true)
+//                .message("Order created successfully. Use 'Add to Cart' to proceed with payment.")
+//                .httpStatus(HttpStatus.CREATED)
+//                .data(mapToResponseDto(savedOrder, false))
+//                .build();
+//    }
+
     @Override
     public GenericResponse createOrder(OrderRequestDto request) {
+
         log.info("Creating order for service product ID: {} and plan ID: {}",
                 request.getServiceProductId(), request.getServicePlanId());
 
-        // Get current user
+        // 1️⃣ Get current user
         User currentUser = securityUtil.getCurrentLoggedInUser();
         log.debug("Order creation requested by user: {} (ID: {})",
                 currentUser.getEmail(), currentUser.getId());
 
-        // Validate and fetch service product
-        ServiceProduct serviceProduct = validateAndFetchServiceProduct(
-                request.getServiceProductId());
+        // 2️⃣ Validate and fetch service product
+        ServiceProduct serviceProduct =
+                validateAndFetchServiceProduct(request.getServiceProductId());
 
-        // Validate and fetch service plan
-        ServiceProductPlan servicePlan = validateAndFetchServicePlan(
-                request.getServicePlanId(),
-                serviceProduct.getId()
-        );
+        // 3️⃣ Validate and fetch service plan
+        ServiceProductPlan servicePlan =
+                validateAndFetchServicePlan(
+                        request.getServicePlanId(),
+                        serviceProduct.getId()
+                );
 
-        // Fetch product price
+        // 4️⃣ Fetch price configuration
         ServiceProductPrice productPrice = servicePlan.getProductPrice();
         if (productPrice == null) {
             log.error("No price configured for service plan ID: {}", servicePlan.getId());
@@ -87,24 +176,29 @@ public class OrderServiceImpl implements OrderService {
                     "Price not configured for the selected service plan");
         }
 
-        // Get latest conversion rate
+        // 5️⃣ Resolve base price (fixed or dynamic)
+        BigDecimal basePrice = resolveBasePrice(servicePlan, request);
+
+        // 6️⃣ Get conversion rate
         BigDecimal conversionRate = exchangeRateService.getConversionRate(
                 productPrice.getDefaultCurrency(),
-                Currency.NGN  // We standardize to NGN for payments
+                Currency.NGN
         );
-        log.debug("Current conversion rate from {} to NGN: {}",
+
+        log.debug("Conversion rate from {} to NGN: {}",
                 productPrice.getDefaultCurrency(), conversionRate);
 
-        // Calculate amounts
-        BigDecimal amountInNGN = productPrice.getDefaultPrice()
+        // 7️⃣ Calculate amount in NGN
+        BigDecimal amountInNGN = basePrice
                 .multiply(conversionRate)
                 .setScale(4, RoundingMode.HALF_UP);
 
+        // 8️⃣ Calculate service fee
         BigDecimal serviceFee = amountInNGN
                 .multiply(productPrice.getServiceFeePercentage())
                 .setScale(4, RoundingMode.HALF_UP);
 
-        // Create order
+        // 9️⃣ Build order
         Order order = buildOrder(
                 currentUser,
                 serviceProduct,
@@ -116,23 +210,25 @@ public class OrderServiceImpl implements OrderService {
                 request
         );
 
-        // Encrypt credentials if provided
+        // 🔐 Encrypt credentials if provided
         if (request.getCredentialUsernameOrEmail() != null) {
             order.setCredentialUsernameOrEmail(
                     encryptionUtil.encrypt(request.getCredentialUsernameOrEmail())
             );
         }
+
         if (request.getCredentialPassword() != null) {
             order.setCredentialPassword(
                     encryptionUtil.encrypt(request.getCredentialPassword())
             );
         }
 
-        // Calculate total amount
+        // 🔢 Calculate total
         order.calculateTotalAmount();
 
-        // Save order
+        // 💾 Save
         Order savedOrder = orderRepository.save(order);
+
         log.info("Successfully created order with reference: {}. Total: {} {}. isInCart: {}",
                 savedOrder.getOrderReference(),
                 savedOrder.getTotalAmount(),
@@ -484,6 +580,38 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return plan;
+    }
+
+
+    private BigDecimal resolveBasePrice(ServiceProductPlan servicePlan, OrderRequestDto request) {
+        ServiceProductPrice productPrice = servicePlan.getProductPrice();
+        BigDecimal defaultPrice = productPrice.getDefaultPrice();
+
+        // 🔒 If default price is configured (> 0), always use it
+        if (defaultPrice != null && defaultPrice.compareTo(BigDecimal.ZERO) > 0) {
+            return defaultPrice;
+        }
+
+        // 🟡 defaultPrice == 0 → allow dynamic override if provided
+        Map<String, Object> metadata = request.getMetadata();
+
+        if (metadata != null && metadata.get("amount") != null) {
+            try {
+                BigDecimal overrideAmount =
+                        new BigDecimal(metadata.get("amount").toString());
+
+                if (overrideAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    log.info("Using dynamic pricing override amount: {}", overrideAmount);
+                    return overrideAmount;
+                }
+
+            } catch (Exception ex) {
+                log.warn("Invalid amount format in metadata. Using default price of 0.", ex);
+            }
+        }
+
+        // If no override provided → return default (which is 0)
+        return BigDecimal.ZERO;
     }
 
     private Order buildOrder(
