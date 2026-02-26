@@ -25,7 +25,7 @@ public class ServiceProductPlanRequest {
     private Long serviceProductId;
 
     @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than zero")
+//    @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than zero")
     @Digits(integer = 15, fraction = 4, message = "Amount must have at most 15 integer digits and 4 decimal places")
     private BigDecimal amount;
 
